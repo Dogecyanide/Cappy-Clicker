@@ -3,6 +3,8 @@ import { BOO_OUTCOME_BY_ID } from '../data/boo-outcomes.js';
 import { commitBooSpin } from '../systems/king-boo.js';
 
 const SYMBOLS = { coin: '🪙', crown: '♛', cap: '🧢', banana: '🍌', boo: '👻', onion: '🧅', shell: '🐚', nothing: '·' };
+const SYMBOL_ORDER = Object.keys(SYMBOLS);
+const REEL_SYMBOL_COUNT = 29;
 
 export function createKingBooWidget(element, store, options = {}) {
   let renderedSpinId = '';
@@ -49,7 +51,7 @@ export function createKingBooWidget(element, store, options = {}) {
       renderedSpinId = spinKey;
       const classes = spin.applied ? `boo-machine is-result boo-machine--${outcome.tier}` : 'boo-machine is-spinning';
       element.innerHTML = `<div class="${classes}"><div class="boo-machine__header"><img src="${base}assets/boo/king-boo.webp" alt=""><div><span class="eyebrow">Result committed</span><h2>${spin.applied ? escapeHtml(outcome.title) : 'Reels in motion…'}</h2></div></div>
-        <div class="slot-reels" aria-label="${outcome.symbols.join(', ')}">${outcome.symbols.map((symbol, index) => `<div class="slot-reel slot-reel--${index + 1}"><span>${SYMBOLS[symbol] ?? '?'}</span></div>`).join('')}</div>
+        <div class="slot-reels" aria-label="${outcome.symbols.join(', ')}">${outcome.symbols.map((symbol, index) => reelMarkup(symbol, index, !spin.applied)).join('')}</div>
         <div class="boo-result">${spin.applied ? `<p>${escapeHtml(outcome.description)}</p>${receipt(spin)}<button type="button" data-dismiss-boo-result>Fold receipt</button>` : `<p>The outcome is locked. Reloading will not change it.</p><div class="slot-progress"><span></span></div>`}</div></div>`;
     } else if (!spin.applied) {
       const progress = Math.max(0, Math.min(1, 1 - (spin.revealAt - now) / 3_200));
@@ -61,6 +63,15 @@ export function createKingBooWidget(element, store, options = {}) {
   return { update };
 }
 
+function reelMarkup(finalSymbol, index, spinning) {
+  const symbols = spinning
+    ? Array.from({ length: REEL_SYMBOL_COUNT - 1 }, (_, step) => SYMBOL_ORDER[(step + index * 3) % SYMBOL_ORDER.length]).concat(finalSymbol)
+    : [finalSymbol];
+  const distance = -(symbols.length - 1) * 74;
+  const duration = [2.48, 2.78, 3.04][index] ?? 3;
+  return `<div class="slot-reel slot-reel--${index + 1}"><div class="slot-reel__strip ${spinning ? '' : 'is-settled'}" style="--reel-end:${distance}px;--reel-duration:${duration}s">${symbols.map((symbol) => `<span class="slot-reel__symbol" aria-hidden="true">${SYMBOLS[symbol] ?? '?'}</span>`).join('')}</div></div>`;
+}
+
 function receipt(spin) {
   if (spin.payout !== '0') return `<div class="boo-result__receipt"><span>Casino payout</span><strong>+${format(spin.payout)} coins</strong></div>`;
   if (spin.loss !== '0') return `<div class="boo-result__receipt"><span>Casino charge</span><strong>−${format(spin.loss)} coins</strong></div>`;
@@ -70,4 +81,3 @@ function receipt(spin) {
 function escapeHtml(value) {
   return String(value).replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[character]);
 }
-

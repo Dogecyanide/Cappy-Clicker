@@ -1,5 +1,6 @@
 import { D, Decimal } from './numbers.js';
 import { PRODUCERS } from '../data/buildings.js';
+import { DEFAULT_COSMETICS, DEFAULT_EQUIPPED_COSMETICS } from '../data/cosmetics.js';
 
 export const SAVE_VERSION = 2;
 
@@ -12,6 +13,10 @@ export function createInitialState(now = Date.now()) {
     upgrades: [],
     achievements: {},
     moons: [],
+    cosmetics: {
+      owned: [...DEFAULT_COSMETICS],
+      equipped: { ...DEFAULT_EQUIPPED_COSMETICS },
+    },
     discoveredProducers: PRODUCERS.slice(0, 2).map(({ id }) => id),
     activeEffects: [],
     stats: {
@@ -54,6 +59,17 @@ export function createInitialState(now = Date.now()) {
       playDays: [new Date(now).toISOString().slice(0, 10)],
       autosaves: 0,
       performanceModesUsed: ['full'],
+      shinesSeen: 0,
+      shinesClaimed: 0,
+      shinesMissed: 0,
+      corruptedShines: 0,
+      shineCoins: D(0),
+      shineEffects: 0,
+      shineOutcomeCounts: {},
+      shineStreak: 0,
+      cosmeticsPurchased: 0,
+      cosmeticSwaps: 0,
+      leaderboardSubmissions: 0,
     },
     combo: { count: 0, lastClickAt: 0 },
     boo: {
@@ -62,11 +78,22 @@ export function createInitialState(now = Date.now()) {
       committedSpin: null,
       history: [],
     },
+    shine: {
+      nextSpawnAt: now + randomShineDelay(),
+      visibleUntil: 0,
+      spawnedAt: 0,
+      kind: 'normal',
+    },
     settings: {
       performance: 'full',
       sound: true,
       numberFormat: 'words',
       reducedMotion: false,
+      leaderboardName: '',
+    },
+    integrity: {
+      imported: false,
+      devLabUsed: false,
     },
     news: [],
     lastSaveAt: now,
@@ -76,6 +103,10 @@ export function createInitialState(now = Date.now()) {
 
 export function randomBooDelay(random = Math.random) {
   return (4 + random() * 4) * 60 * 1000;
+}
+
+export function randomShineDelay(random = Math.random) {
+  return (9 + random() * 7) * 60 * 1000;
 }
 
 export function cloneState(state) {

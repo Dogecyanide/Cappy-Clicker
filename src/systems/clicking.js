@@ -1,15 +1,15 @@
 import { D } from '../core/numbers.js';
-import { getClickValue } from '../core/economy.js';
+import { getClickProfile } from '../core/economy.js';
 
 export function performCappyClick(state, context = {}) {
   const now = context.now ?? Date.now();
   const random = context.random ?? Math.random;
-  const base = getClickValue(state, { now });
-  const criticalChance = 0.05;
-  const critical = random() < criticalChance;
-  const amount = critical ? base.mul(5) : base;
+  const profile = getClickProfile(state, { now });
+  const base = profile.value;
+  const critical = random() < profile.criticalChance;
+  const amount = critical ? base.mul(profile.criticalMultiplier) : base;
 
-  if (now - (state.combo.lastClickAt ?? 0) <= 700) state.combo.count += 1;
+  if (now - (state.combo.lastClickAt ?? 0) <= profile.comboWindow) state.combo.count += 1;
   else state.combo.count = 1;
   state.combo.lastClickAt = now;
   state.stats.longestCombo = Math.max(state.stats.longestCombo, state.combo.count);
@@ -20,4 +20,3 @@ export function performCappyClick(state, context = {}) {
   state.lifetimeCoins = D(state.lifetimeCoins).add(amount);
   return { amount, critical, combo: state.combo.count };
 }
-

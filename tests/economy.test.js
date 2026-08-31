@@ -53,7 +53,7 @@ describe('canonical economy', () => {
     const state = createInitialState();
     state.activeEffects = [{ type: 'price-multiplier', multiplier: 1.5, expiresAt: 10_000 }];
     expect(getBulkCost(FROG, 0, 1, { priceMultiplier: 1.5 }).eq(23)).toBe(true);
-    expect(getBulkCost(FROG, 0, 1, { priceMultiplier: 0.1 }).eq(12)).toBe(true);
+    expect(getBulkCost(FROG, 0, 1, { priceMultiplier: 0.1 }).eq(9)).toBe(true);
     state.coins = D(22);
     expect(getAffordableAmount(state, FROG, state.coins, 100, { now: 5_000 })).toBe(0);
   });
@@ -70,7 +70,7 @@ describe('canonical economy', () => {
     expect(frog.contribution).toBeCloseTo(100);
   });
 
-  test('milestone upgrades double only their producer and compound locally', () => {
+  test('milestone upgrades mix production gains with route-specific discounts', () => {
     const state = createInitialState();
     state.producers[FROG] = 5;
     state.producers['bonneton-tailor'] = 1;
@@ -82,8 +82,9 @@ describe('canonical economy', () => {
 
     state.upgrades.push(`${FROG}--15`, `${FROG}--25`);
     snapshot = getEconomySnapshot(state);
-    expect(snapshot.byId[FROG].localMultiplier.eq(8)).toBe(true);
-    expect(snapshot.byId[FROG].effectivePerUnit.eq('3.2')).toBe(true);
+    expect(snapshot.byId[FROG].localMultiplier.eq(4)).toBe(true);
+    expect(snapshot.byId[FROG].effectivePerUnit.eq('1.6')).toBe(true);
+    expect(snapshot.upgradeBonuses.producerDiscounts[FROG]).toBeCloseTo(0.03);
   });
 
   test('permanent global bonuses add while temporary effects multiply', () => {

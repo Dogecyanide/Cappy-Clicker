@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased — Grand Tour expansion
+
+- Expanded the route from 20 to 40 progressively discovered destinations and deliberately interleaved *Odyssey*, *Super Mario 64*, *Sunshine*, *3D World*, *Galaxy*, *Mario Kart*, *Paper Mario*, *Yoshi's Island*, *Mario & Luigi*, and *Luigi's Mansion* stops from the start.
+- Expanded permanent progression from 140 to 460 upgrades: eleven varied milestones for each destination through 1,000 owned, plus twenty Cappy techniques with click, combo, critical, and rare-Shine effects.
+- Expanded the passport from 250 to 700 achievements across ten categories, with +0.02% production per badge and a +14% completion cap.
+- Expanded the finite Power Moon album from 16 to 50. Moons 10, 20, 30, 40, and 50 are escalating Multi Moons with larger price jumps and substantially stronger permanent bonuses.
+- Added active-play rare Shine encounters, including six helpful Shine outcomes and a 7% chance of a cracked purple Gloom Shine with three risky outcomes.
+- Added 21 permanent cosmetics across Cappy styles, voyage backdrops, and synthesized sound packs.
+- Added CAPPY2 save-file download and file import alongside text copy/paste, plus a confirmed local-save deletion flow.
+- Expanded the ambient news pool to 190 headlines, added varied reactive templates, and prioritized unseen items while suppressing the most recent repeats.
+- Extended readable short-scale number names through centillion before falling back to scientific notation.
+- Reworked King Boo's presentation into three cycling symbol strips with staggered stops while preserving committed-before-animation, reload-safe outcomes and receipts.
+- Added the optional Open League interface for self-reported lifetime-coin and CPS rankings, plus a deployable Cloudflare Worker/D1 backend with validation, rate limits, audit history, CORS controls, and held-score review. A shared board requires deploying that backend and supplying `VITE_LEADERBOARD_API_URL` to the front-end build; the static game remains fully playable without it.
+- Added Grand Tour route art, generated Shine/Gloom assets and processing, expanded validation, and broader unit and browser coverage for the new collection sizes and mechanics.
+
 ## 2.0.0 — 2026-08-31
 
 - Rebuilt the previously empty repository as a Vite-powered vanilla JavaScript game.

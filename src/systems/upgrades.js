@@ -1,13 +1,14 @@
 import { D } from '../core/numbers.js';
-import { BUILDING_UPGRADES, BUILDING_UPGRADE_BY_ID, MILESTONES } from '../data/building-upgrades.js';
+import { BUILDING_UPGRADES, BUILDING_UPGRADE_BY_ID } from '../data/building-upgrades.js';
 
 export function getAvailableUpgrades(state) {
   const purchased = new Set(state.upgrades);
   return BUILDING_UPGRADES.filter((upgrade) => {
-    if (purchased.has(upgrade.id) || (state.producers[upgrade.producerId] ?? 0) < upgrade.milestone) return false;
-    const index = MILESTONES.indexOf(upgrade.milestone);
-    if (index === 0) return true;
-    return purchased.has(`${upgrade.producerId}--${MILESTONES[index - 1]}`);
+    if (purchased.has(upgrade.id) || (upgrade.previousId && !purchased.has(upgrade.previousId))) return false;
+    if (upgrade.track === 'technique') return D(state.lifetimeCoins).gte(upgrade.unlockAt);
+    if ((state.producers[upgrade.producerId] ?? 0) < upgrade.milestone) return false;
+    const fusion = upgrade.effects.find((effect) => effect.type === 'fusion');
+    return !fusion || (state.producers[fusion.partnerId] ?? 0) >= upgrade.milestone;
   });
 }
 
@@ -29,9 +30,9 @@ export function getInstalledUpgradeGroups(state) {
   for (const id of state.upgrades) {
     const upgrade = BUILDING_UPGRADE_BY_ID[id];
     if (!upgrade) continue;
-    if (!groups.has(upgrade.producerId)) groups.set(upgrade.producerId, []);
-    groups.get(upgrade.producerId).push(upgrade);
+    const groupId = upgrade.track === 'technique' ? 'technique' : upgrade.producerId;
+    if (!groups.has(groupId)) groups.set(groupId, []);
+    groups.get(groupId).push(upgrade);
   }
   return groups;
 }
-

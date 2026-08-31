@@ -17,12 +17,24 @@ export function clampDecimal(value, min = 0, max = '1e1000000') {
   return Decimal.max(D(min), Decimal.min(D(max), D(value)));
 }
 
-const SHORT_SCALE = [
-  '', 'thousand', 'million', 'billion', 'trillion', 'quadrillion', 'quintillion',
-  'sextillion', 'septillion', 'octillion', 'nonillion', 'decillion', 'undecillion',
-  'duodecillion', 'tredecillion', 'quattuordecillion', 'quindecillion',
-  'sexdecillion', 'septendecillion', 'octodecillion', 'novemdecillion', 'vigintillion',
+const SMALL_ILLIONS = [
+  '', 'million', 'billion', 'trillion', 'quadrillion', 'quintillion',
+  'sextillion', 'septillion', 'octillion', 'nonillion',
 ];
+const ILLION_UNITS = ['', 'un', 'duo', 'tre', 'quattuor', 'quin', 'sex', 'septen', 'octo', 'novem'];
+const ILLION_TENS = ['', 'dec', 'vigint', 'trigint', 'quadragint', 'quinquagint', 'sexagint', 'septuagint', 'octogint', 'nonagint'];
+
+export function shortScaleName(group) {
+  if (group === 0) return '';
+  if (group === 1) return 'thousand';
+  const illion = group - 1;
+  if (illion < SMALL_ILLIONS.length) return SMALL_ILLIONS[illion];
+  if (illion === 100) return 'centillion';
+  if (illion > 100) return '';
+  const tens = Math.floor(illion / 10);
+  const units = illion % 10;
+  return `${ILLION_UNITS[units]}${ILLION_TENS[tens]}illion`;
+}
 
 export function format(value, precision = 3) {
   const number = D(value);
@@ -37,10 +49,11 @@ export function format(value, precision = 3) {
   }
   const exponent = absolute.exponent;
   const group = Math.floor(exponent / 3);
-  if (group < SHORT_SCALE.length) {
+  const scaleName = shortScaleName(group);
+  if (scaleName) {
     const scaled = absolute.div(Decimal.pow(1000, group)).toNumber();
     const places = scaled < 10 ? 2 : scaled < 100 ? 1 : 0;
-    return `${sign}${scaled.toFixed(places)} ${SHORT_SCALE[group]}`;
+    return `${sign}${scaled.toFixed(places)} ${scaleName}`;
   }
   return `${sign}${absolute.toExponential(Math.max(1, precision - 1)).replace('+', '')}`;
 }

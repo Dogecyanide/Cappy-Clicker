@@ -1,0 +1,30 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "cappy-clicker-leaderboard",
+  "main": "src/index.js",
+  "compatibility_date": "2026-08-31",
+  "observability": {
+    "enabled": true
+  },
+  "vars": {
+    "ALLOWED_ORIGINS": "https://dogecyanide.github.io,http://127.0.0.1:5173,http://localhost:5173",
+    "LEADERBOARD_LIMIT": "100",
+    "SUBMISSION_COOLDOWN_SECONDS": "60",
+    "PLAYER_SUBMISSIONS_PER_DAY": "50",
+    "NETWORK_SUBMISSIONS_PER_10_MINUTES": "12",
+    "MAX_SCORE_LOG10": "1000000",
+    "MAX_PRODUCERS": "40000000000",
+    "MAX_UPGRADES": "460",
+    "MAX_ACHIEVEMENTS": "700",
+    "MAX_MOONS": "50",
+    "MAX_PLAY_SECONDS": "3155760000"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "cappy-clicker-leaderboard",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations"
+    }
+  ]
+}

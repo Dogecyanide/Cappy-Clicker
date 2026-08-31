@@ -25,7 +25,10 @@ jobs:
       - run: npm install
       - run: npm run test
       - run: npm run validate
-      - run: npm run build
+      - name: Build
+        env:
+          VITE_LEADERBOARD_API_URL: ${{ vars.VITE_LEADERBOARD_API_URL }}
+        run: npm run build
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

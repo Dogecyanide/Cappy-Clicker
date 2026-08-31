@@ -56,14 +56,14 @@ test('fresh voyage: click, producer, milestone upgrade, achievement, and Power M
   await expect(firstUpgrade).toBeVisible();
   await expect(firstUpgrade).toBeEnabled();
   await firstUpgrade.click();
-  await expect(page.locator('.installed-section .count-pill')).toHaveText('1/140');
-  await expect(page.locator('[data-badges]')).toHaveText(/[1-9]\d*\/250/);
+  await expect(page.locator('.installed-section .count-pill')).toHaveText('1/460');
+  await expect(page.locator('[data-badges]')).toHaveText(/[1-9]\d*\/700/);
 
   await page.locator('[data-tab="moons"]').click();
   const firstMoon = page.locator('[data-buy-moon="moon-first-stamp"]');
   await expect(firstMoon).toBeEnabled();
   await firstMoon.click();
-  await expect(page.locator('.moon-count')).toHaveText('1/16');
+  await expect(page.locator('.moon-count')).toHaveText('1/50');
   await expect(frog.locator('[data-each-rate]')).not.toHaveText('0.8');
   expect(errors).toEqual([]);
 });

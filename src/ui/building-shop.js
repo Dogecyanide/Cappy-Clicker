@@ -16,19 +16,20 @@ export function createBuildingShop(container, store, options = {}) {
     visibleKey = nextKey;
     container.innerHTML = visible.map(({ producer, teaser }) => teaser
       ? `<article class="producer-card producer-card--teaser" data-producer-card="${producer.id}">
-          <div class="producer-card__art"><img src="${base}assets/producers/${producer.icon}" alt="" loading="lazy"></div>
+          <div class="producer-card__art producer-card__art--${producer.artMode ?? 'cutout'}"><img src="${base}assets/producers/${producer.icon}" alt="" loading="lazy"></div>
           <div><span class="eyebrow">Next destination</span><h3>???</h3><p>A silhouette appears when lifetime earnings reach 25% of the fare.</p>
           <div class="teaser-meter"><span style="width:0" data-teaser-progress></span></div></div>
         </article>`
       : `<article class="producer-card" data-producer-card="${producer.id}">
-          <div class="producer-card__art">
+          <div class="producer-card__art producer-card__art--${producer.artMode ?? 'cutout'}">
             <img src="${base}assets/producers/${producer.icon}" alt="${escapeHtml(producer.name)}" loading="lazy" decoding="async">
             <span class="producer-card__owned" data-owned>0</span>
           </div>
           <div class="producer-card__body">
-            <header><div><span class="eyebrow">${escapeHtml(producer.kingdom)} Kingdom</span><h3>${escapeHtml(producer.name)}</h3></div><span class="contribution" data-contribution>0%</span></header>
+            <header><div><span class="eyebrow">${escapeHtml(producer.kingdom)} · ${escapeHtml(producer.series)}</span><h3>${escapeHtml(producer.name)}</h3></div><span class="contribution" data-contribution>0%</span></header>
             <p class="producer-card__flavour">${escapeHtml(producer.description)}</p>
             <div class="rate-strip"><span><b data-each-rate>0</b>/sec each</span><span><b data-total-rate>0</b>/sec total</span></div>
+            <div class="ownership-visual" aria-label="Visual ownership count"><div>${Array.from({ length: 12 }, () => '<span></span>').join('')}</div><small data-ownership-scale>No crew yet</small></div>
             <div class="milestone"><div><span data-milestone-label>Next: 5</span><span data-milestone-count>0 / 5</span></div><div class="meter"><span data-milestone-progress></span></div></div>
             <div class="buy-row">${QUANTITIES.map((quantity) => `<button type="button" class="buy-button" data-buy="${quantity}" aria-label="Buy ${quantity === 'max' ? 'maximum' : quantity} ${escapeHtml(producer.name)}"><span>${quantity === 'max' ? 'MAX' : `×${quantity}`}</span><small data-buy-cost="${quantity}">—</small></button>`).join('')}</div>
             <details class="rate-breakdown"><summary>Why this rate?</summary><div data-breakdown></div></details>
@@ -64,6 +65,7 @@ export function createBuildingShop(container, store, options = {}) {
         continue;
       }
       setText(card, '[data-owned]', formatInteger(breakdown.owned));
+      updateOwnershipVisual(card, breakdown.owned);
       setText(card, '[data-contribution]', `${breakdown.contribution < 0.1 && breakdown.contribution > 0 ? '<0.1' : breakdown.contribution.toFixed(1)}%`);
       const rateDisplay = getProducerRateDisplay(snapshot, producerId);
       setText(card, '[data-each-rate]', rateDisplay.each);
@@ -79,7 +81,7 @@ export function createBuildingShop(container, store, options = {}) {
         card.querySelector('[data-milestone-progress]').style.width = `${Math.max(0, Math.min(1, progress)) * 100}%`;
       } else {
         setText(card, '[data-milestone-label]', 'Milestone chain complete');
-        setText(card, '[data-milestone-count]', '200+');
+        setText(card, '[data-milestone-count]', '1,000 mastered');
         card.querySelector('[data-milestone-progress]').style.width = '100%';
       }
 
@@ -97,7 +99,7 @@ export function createBuildingShop(container, store, options = {}) {
       }
       card.classList.toggle('is-affordable', !card.querySelector('[data-buy="1"]').disabled);
       const detail = card.querySelector('[data-breakdown]');
-      detail.innerHTML = `<span>${format(breakdown.basePerUnit)} base</span><span>×${format(breakdown.localMultiplier)} upgrades</span><span>×${breakdown.additiveMultiplier.toFixed(3)} global</span><span>×${Number(breakdown.producerMultiplier).toFixed(2)} special</span><span>×${Number(breakdown.temporaryMultiplier).toFixed(2)} event</span><strong>= ${format(breakdown.effectivePerUnit)}/sec each</strong>`;
+      detail.innerHTML = `<span>${format(breakdown.basePerUnit)} base</span><span>×${format(breakdown.localMultiplier)} local</span><span>×${breakdown.additiveMultiplier.toFixed(3)} badges</span><span>×${Number(breakdown.globalMultiplier).toFixed(2)} Moons</span><span>×${Number(breakdown.producerMultiplier).toFixed(2)} fusion</span><span>×${Number(breakdown.temporaryMultiplier).toFixed(2)} event</span><strong>= ${format(breakdown.effectivePerUnit)}/sec each</strong>`;
     }
   }
 
@@ -115,6 +117,16 @@ export function getProducerRateDisplay(snapshot, producerId) {
 function setText(root, selector, value) {
   const node = root.querySelector(selector);
   if (node) node.textContent = value;
+}
+
+function updateOwnershipVisual(card, owned) {
+  const dots = [...card.querySelectorAll('.ownership-visual div span')];
+  const visible = owned > 0 ? Math.min(dots.length, 1 + Math.floor(Math.log10(owned) * 4)) : 0;
+  dots.forEach((dot, index) => dot.classList.toggle('is-filled', index < visible));
+  const scale = card.querySelector('[data-ownership-scale]');
+  if (scale) scale.textContent = owned
+    ? `${visible} passport figures · about ${formatInteger(Math.ceil(owned / visible))} each`
+    : 'No crew yet';
 }
 
 function escapeHtml(value) {

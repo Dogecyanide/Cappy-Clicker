@@ -18,10 +18,10 @@ const HORIZON_SECONDS = 30 * 24 * 3600;
 const EXPECTED_CRITICAL_MULTIPLIER = 0.95 + 0.05 * 5;
 const TARGETS = {
   firstUpgrade: [2 * 60, 5 * 60],
-  tier5: [15 * 60, 30 * 60],
-  tier10: [1 * 3600, 3 * 3600],
-  tier15: [24 * 3600, 48 * 3600],
-  tier20: [4 * 24 * 3600, 21 * 24 * 3600],
+  tier5: [25 * 60, 60 * 60],
+  tier10: [6 * 3600, 18 * 3600],
+  tier15: [3 * 24 * 3600, 8 * 24 * 3600],
+  tier20: [10 * 24 * 3600, 21 * 24 * 3600],
 };
 
 const STRATEGIES = [
@@ -144,7 +144,9 @@ function chooseCandidate(state, mode, now) {
     type: 'upgrade',
     id: upgrade.id,
     cost: D(upgrade.cost),
-    gain: snapshot.byId[upgrade.producerId].effectiveTotal,
+    // Technique upgrades improve clicking or event utility rather than raw CPS,
+    // so the ROI-only strategy leaves them to upgrade-first/balanced play.
+    gain: upgrade.producerId ? snapshot.byId[upgrade.producerId]?.effectiveTotal ?? D(0) : D(0),
   }));
   const candidates = [...producerCandidates, ...upgradeCandidates].filter(({ gain }) => D(gain).gt(0));
   candidates.sort((a, b) => a.cost.div(a.gain).cmp(b.cost.div(b.gain)) || a.cost.cmp(b.cost));

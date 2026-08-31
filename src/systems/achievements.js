@@ -1,6 +1,8 @@
 import { D } from '../core/numbers.js';
 import { activeEffects, getClickValue, getEconomySnapshot } from '../core/economy.js';
 import { ACHIEVEMENTS } from '../data/achievements.js';
+import { POWER_MOON_BY_ID } from '../data/power-moons.js';
+import { COSMETIC_BY_ID } from '../data/cosmetics.js';
 
 const DECIMAL_TYPES = new Set(['lifetime-coins', 'total-cps', 'click-value', 'manual-coins', 'offline-coins', 'boo-coins-lost']);
 
@@ -10,11 +12,11 @@ export function getAchievementProgress(state, achievement, context = {}) {
   switch (type) {
     case 'producer-owned': return state.producers[scope] ?? 0;
     case 'lifetime-coins': return D(state.lifetimeCoins);
-    case 'total-cps': return getEconomySnapshot(state, context).totalCps;
+    case 'total-cps': return (context.snapshot ?? getEconomySnapshot(state, context)).totalCps;
     case 'total-tosses': return stats.totalClicks;
     case 'critical-tosses': return stats.criticalClicks;
     case 'max-combo': return stats.longestCombo;
-    case 'click-value': return getClickValue(state, context);
+    case 'click-value': return getClickValue(state, { ...context, snapshot: context.snapshot });
     case 'manual-coins': return D(stats.coinsFromClicks);
     case 'upgrades-owned': return state.upgrades.length;
     case 'moon-collected': return state.moons.includes(scope) ? 1 : 0;
@@ -50,6 +52,15 @@ export function getAchievementProgress(state, achievement, context = {}) {
     case 'play-days': return stats.playDays?.length ?? 0;
     case 'autosaves': return stats.autosaves;
     case 'performance-modes': return stats.performanceModesUsed?.length ?? 0;
+    case 'shines-claimed': return stats.shinesClaimed;
+    case 'shines-seen': return stats.shinesSeen;
+    case 'corrupted-shines': return stats.corruptedShines;
+    case 'shines-missed': return stats.shinesMissed;
+    case 'shine-streak': return stats.shineStreak;
+    case 'shine-outcome-seen': return stats.shineOutcomeCounts?.[scope] ?? 0;
+    case 'cosmetics-owned': return state.cosmetics?.owned?.length ?? 0;
+    case 'cosmetics-category-owned': return (state.cosmetics?.owned ?? []).filter((id) => COSMETIC_BY_ID[id]?.category === scope).length;
+    case 'multi-moons': return (state.moons ?? []).filter((id) => POWER_MOON_BY_ID[id]?.isMulti).length;
     case 'other-achievements': return Object.keys(state.achievements).length;
     default: return 0;
   }
@@ -65,10 +76,11 @@ export function isAchievementMet(state, achievement, context = {}) {
 
 export function evaluateAchievements(state, context = {}) {
   const now = context.now ?? Date.now();
+  const snapshot = context.snapshot ?? getEconomySnapshot(state, { ...context, now });
   const unlocked = [];
   for (const achievement of ACHIEVEMENTS) {
     if (state.achievements[achievement.id]) continue;
-    if (isAchievementMet(state, achievement, { ...context, now })) {
+    if (isAchievementMet(state, achievement, { ...context, now, snapshot })) {
       state.achievements[achievement.id] = { unlockedAt: now };
       unlocked.push(achievement);
     }
@@ -86,4 +98,3 @@ export function getAchievementFraction(state, achievement, context = {}) {
   }
   return Math.max(0, Math.min(1, Number(progress) / Number(target)));
 }
-

@@ -7,27 +7,31 @@ import { BUILDING_UPGRADES } from '../src/data/building-upgrades.js';
 import { ACHIEVEMENTS } from '../src/data/achievements.js';
 import { POWER_MOONS } from '../src/data/power-moons.js';
 import { BOO_OUTCOMES, BOO_PROBABILITY_TOTAL } from '../src/data/boo-outcomes.js';
+import { COSMETICS } from '../src/data/cosmetics.js';
+import { SHINE_OUTCOMES } from '../src/data/shine-outcomes.js';
 import { evaluateAchievements } from '../src/systems/achievements.js';
 import { getVisibleMoons, purchaseMoon } from '../src/systems/moons.js';
 
 describe('finite collections and authored content', () => {
-  test('contains exactly 20 producers, 140 upgrades, 250 achievements, and 16 Moons', () => {
-    expect(PRODUCERS).toHaveLength(20);
-    expect(BUILDING_UPGRADES).toHaveLength(140);
-    expect(ACHIEVEMENTS).toHaveLength(250);
-    expect(POWER_MOONS).toHaveLength(16);
+  test('contains the complete Grand Tour collections', () => {
+    expect(PRODUCERS).toHaveLength(40);
+    expect(BUILDING_UPGRADES).toHaveLength(460);
+    expect(ACHIEVEMENTS).toHaveLength(700);
+    expect(POWER_MOONS).toHaveLength(50);
+    expect(COSMETICS).toHaveLength(21);
+    expect(SHINE_OUTCOMES).toHaveLength(9);
   });
 
   test('producer upgrade IDs and flavour text are unique', () => {
-    expect(new Set(BUILDING_UPGRADES.map(({ id }) => id)).size).toBe(140);
-    expect(new Set(BUILDING_UPGRADES.map(({ flavour }) => flavour)).size).toBe(140);
+    expect(new Set(BUILDING_UPGRADES.map(({ id }) => id)).size).toBe(BUILDING_UPGRADES.length);
+    expect(new Set(BUILDING_UPGRADES.map(({ flavour }) => flavour)).size).toBe(BUILDING_UPGRADES.length);
   });
 
   test('achievement IDs, names, and descriptions are unique and non-empty', () => {
     for (const field of ['id', 'name', 'flavour']) {
       const values = ACHIEVEMENTS.map((achievement) => achievement[field]);
       expect(values.every((value) => typeof value === 'string' && value.trim())).toBe(true);
-      expect(new Set(values).size).toBe(250);
+      expect(new Set(values).size).toBe(ACHIEVEMENTS.length);
     }
   });
 
@@ -77,6 +81,17 @@ describe('finite collections and authored content', () => {
     state.moons.push('moon-first-stamp');
     const after = getEconomySnapshot(state).byId['frog-capture'].effectivePerUnit;
     expect(after.eq(before.mul(1.1))).toBe(true);
+  });
+
+  test('every tenth collectible is a substantially stronger Multi Moon', () => {
+    const multis = POWER_MOONS.filter(({ isMulti }) => isMulti);
+    expect(multis.map((moon) => POWER_MOONS.indexOf(moon) + 1)).toEqual([10, 20, 30, 40, 50]);
+    for (const moon of multis) {
+      expect(moon.effects.some(({ type, multiplier }) => type === 'global-multiplier' && multiplier >= 3)).toBe(true);
+    }
+    for (const index of [9, 19, 29, 39, 49]) {
+      expect(D(POWER_MOONS[index].cost).div(POWER_MOONS[index - 1].cost).gte('1e5')).toBe(true);
+    }
   });
 
   test('the King Boo outcome probability table is complete and normalized', () => {

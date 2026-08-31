@@ -1,20 +1,24 @@
-import { D, format } from '../core/numbers.js';
+import { format } from '../core/numbers.js';
 import { createInitialState } from '../core/state.js';
 import { createStore } from '../core/store.js';
 import { createGameLoop } from '../core/game-loop.js';
 import { exportSave, importSave, loadFromStorage, saveToStorage, SAVE_KEY } from '../core/save.js';
 import { getEconomySnapshot } from '../core/economy.js';
 import { createAudio } from '../core/audio.js';
+import { createLeaderboardClient } from '../core/leaderboard.js';
 import { PRODUCER_BY_ID } from '../data/buildings.js';
-import { BOO_OUTCOME_BY_ID } from '../data/boo-outcomes.js';
+import { ACHIEVEMENTS } from '../data/achievements.js';
+import { COSMETIC_BY_ID } from '../data/cosmetics.js';
 import { calculateEarningsBetween, calculateOfflineEarnings, applyOfflineEarnings } from '../systems/offline.js';
 import { evaluateAchievements } from '../systems/achievements.js';
 import { reactiveNews, pushNews } from '../systems/events.js';
 import { applyCommittedBooSpin, clearTemporaryEffects, forceBooOutcome, spawnBoo } from '../systems/king-boo.js';
+import { spawnShine } from '../systems/shines.js';
 import { createCappyStage } from './cappy-stage.js';
 import { createBuildingShop } from './building-shop.js';
 import { createRightRail } from './right-rail.js';
 import { createKingBooWidget } from './king-boo-widget.js';
+import { createShineWidget } from './shine-widget.js';
 import { createNotifications } from './notifications.js';
 import { createDevLab } from './dev-lab.js';
 import { createKingdomBackground } from '../visuals/background.js';
@@ -27,6 +31,7 @@ export function createGame(root, dependencies = {}) {
 
   const notifications = createNotifications(root.querySelector('[data-notifications]'));
   const audio = createAudio();
+  const leaderboard = createLeaderboardClient(storage, dependencies.leaderboardEndpoint);
   let loadError = null;
   let state;
   try { state = loadFromStorage(storage); }
@@ -62,7 +67,8 @@ export function createGame(root, dependencies = {}) {
   const rightRail = createRightRail(root.querySelector('[data-right-rail]'), store, {
     audio: audioProxy(),
     onUpgrade: ({ upgrade }) => {
-      notifications.show(`${PRODUCER_BY_ID[upgrade.producerId].name} now produces twice as much.`, { title: upgrade.name, icon: upgrade.motif, tone: 'success' });
+      const subject = PRODUCER_BY_ID[upgrade.producerId]?.name ?? 'Cappy';
+      notifications.show(`${subject}: ${upgrade.effectLabel}`, { title: upgrade.name, icon: upgrade.motif, tone: 'success' });
       unlockNow(); persist('upgrade');
     },
     onMoon: ({ moon }) => {
@@ -70,15 +76,39 @@ export function createGame(root, dependencies = {}) {
       notifications.show(moon.effectLabel, { title: `${moon.name} collected!`, icon: '☾', tone: 'moon', duration: 6_000 });
       unlockNow(); persist('moon');
     },
+    onCosmetic: ({ cosmetic, unchanged }) => {
+      notifications.show(unchanged ? 'Already wearing this one.' : `${cosmetic.name} is now equipped.`, { title: 'Wardrobe updated', icon: cosmetic.preview, tone: 'success' });
+      unlockNow(); persist('cosmetic');
+    },
+    leaderboard,
+    onPersist: persist,
+    onLeaderboardSubmit: () => notifications.show('Your latest score is on the friendly Open League board.', { title: 'Score submitted', icon: '🏁', tone: 'success' }),
     onError: showError,
   });
   const booWidget = createKingBooWidget(root.querySelector('[data-boo-widget]'), store, {
     audio: audioProxy(),
     onCommit: () => persist('boo-commit'),
   });
+  const shineWidget = createShineWidget(root.querySelector('[data-shine-widget]'), store, {
+    audio: audioProxy(),
+    onClaim: (result) => {
+      reactiveNews(store.state, 'shine', { name: result.outcome.title });
+      const coinLine = result.amount !== '0' ? ` You caught ${format(result.amount)} coins.` : result.loss !== '0' ? ` It stole ${format(result.loss)} coins.` : '';
+      notifications.show(`${result.outcome.description}${coinLine}`, {
+        title: result.kind === 'corrupted' ? `Gloom: ${result.outcome.title}` : result.outcome.title,
+        icon: result.kind === 'corrupted' ? '◉' : '☀',
+        tone: result.kind === 'corrupted' ? 'danger' : 'success',
+        duration: 7_000,
+      });
+      unlockNow(); rightRail.renderAll(true); persist('shine');
+    },
+  });
   const background = createKingdomBackground(root.querySelector('[data-kingdom-backdrop]'), root.querySelector('[data-journey]'), store);
   const devLab = createDevLab(root.querySelector('[data-dev-dialog]'), store, {
-    onChange: () => { unlockNow(); persist('dev'); rightRail.renderAll(true); buildingShop.renderStructure(true); },
+    onChange: (action) => {
+      if (!['breakdown', 'dump', 'hard-reset'].includes(action)) store.state.integrity.devLabUsed = true;
+      unlockNow(); persist('dev'); rightRail.renderAll(true); buildingShop.renderStructure(true);
+    },
     onHardReset: () => hardReset(true),
   });
 
@@ -109,6 +139,11 @@ export function createGame(root, dependencies = {}) {
       notifications.show(outcome.description, { title: outcome.title, icon: bad ? '☠' : '♛', tone: bad ? 'danger' : 'success', duration: 7_000 });
       unlockNow(); rightRail.renderAll(true); persist('boo-result');
     },
+    onShineSpawn: () => {
+      pushNews(store.state, store.state.shine.kind === 'corrupted' ? 'A deeply unofficial Shine has appeared. Its warranty is already void.' : 'A rare Shine has appeared somewhere over the voyage!');
+      notifications.show('It will only stay for a few seconds.', { title: store.state.shine.kind === 'corrupted' ? 'Suspicious Shine!' : 'Rare Shine!', icon: store.state.shine.kind === 'corrupted' ? '◉' : '☀', tone: store.state.shine.kind === 'corrupted' ? 'danger' : 'moon' });
+    },
+    onShineMissed: () => pushNews(store.state, 'A rare Shine drifted away unclaimed. The waiting game remains a bad investment.'),
     onEffectsExpired: () => rightRail.renderAll(true),
   });
 
@@ -148,7 +183,7 @@ export function createGame(root, dependencies = {}) {
     const snapshot = getEconomySnapshot(state);
     root.querySelector('[data-coins]').textContent = format(state.coins);
     root.querySelector('[data-cps]').textContent = format(snapshot.totalCps);
-    root.querySelector('[data-badges]').textContent = `${Object.keys(state.achievements).length}/250`;
+    root.querySelector('[data-badges]').textContent = `${Object.keys(state.achievements).length}/${ACHIEVEMENTS.length}`;
     const news = root.querySelector('[data-news-text]');
     const currentNews = state.news[0]?.text ?? 'The Odyssey is fuelled, the passport is blank, and the first frog is negotiating.';
     if (news.textContent !== currentNews) { news.classList.remove('is-changing'); void news.offsetWidth; news.textContent = currentNews; news.classList.add('is-changing'); }
@@ -156,6 +191,7 @@ export function createGame(root, dependencies = {}) {
     buildingShop.update(state);
     rightRail.update(state);
     booWidget.update(state);
+    shineWidget.update(state);
     background.update(state);
     applySettings(state);
     if (reason !== 'tick') updateSaveDeskSummary();
@@ -172,10 +208,14 @@ export function createGame(root, dependencies = {}) {
       if (event.target.closest('[data-open-dev]')) devLab.open();
       if (event.target.closest('[data-close-dialog]')) event.target.closest('dialog')?.close();
       if (event.target.closest('[data-export-save]')) exportCurrentSave();
+      if (event.target.closest('[data-download-save]')) downloadCurrentSave();
+      if (event.target.closest('[data-choose-save-file]')) root.querySelector('[data-save-file]').click();
       if (event.target.closest('[data-import-save]')) importCurrentSave();
       if (event.target.closest('[data-reset-save]')) hardReset(false);
       if (event.target.closest('[data-copy-save]')) copySaveText();
     });
+
+    root.querySelector('[data-save-file]').addEventListener('change', importSaveFile);
 
     const settingsDialog = root.querySelector('[data-settings-dialog]');
     settingsDialog.addEventListener('change', (event) => {
@@ -237,6 +277,29 @@ export function createGame(root, dependencies = {}) {
     textarea.select();
     persist('export');
     unlockNow();
+    return textarea.value;
+  }
+
+  function downloadCurrentSave() {
+    const value = exportCurrentSave();
+    const blob = new Blob([value], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `cappy-clicker-${new Date().toISOString().slice(0, 10)}.cappy2.txt`;
+    link.click();
+    URL.revokeObjectURL(url);
+    notifications.show('A portable save file was downloaded.', { title: 'Voyage packed', icon: '⬇', tone: 'success' });
+  }
+
+  async function importSaveFile(event) {
+    const [file] = event.target.files ?? [];
+    if (!file) return;
+    try {
+      root.querySelector('[data-save-text]').value = await file.text();
+      importCurrentSave();
+    } catch (error) { showError(error.message); }
+    event.target.value = '';
   }
 
   async function copySaveText() {
@@ -251,6 +314,7 @@ export function createGame(root, dependencies = {}) {
     try {
       const imported = importSave(textarea.value);
       imported.stats.saveImports += 1;
+      imported.integrity.imported = true;
       store.replace(imported, 'save-import');
       persist('import');
       notifications.show('The imported voyage is now active.', { title: 'Customs cleared', icon: '🧳', tone: 'success' });
@@ -285,6 +349,13 @@ export function createGame(root, dependencies = {}) {
     document.body.classList.toggle('force-reduced-motion', state.settings.reducedMotion);
     document.body.classList.toggle('has-purple-curse', state.activeEffects.some((effect) => effect.type === 'purple-curse' && effect.expiresAt > Date.now()));
     document.body.classList.toggle('has-banana', state.activeEffects.some((effect) => effect.type === 'cosmetic-banana' && effect.expiresAt > Date.now()));
+    const cappy = COSMETIC_BY_ID[state.cosmetics.equipped.cappy]?.value ?? 'classic';
+    const backdrop = COSMETIC_BY_ID[state.cosmetics.equipped.backdrop]?.value ?? 'postcard';
+    const sound = COSMETIC_BY_ID[state.cosmetics.equipped.sound]?.value ?? 'classic';
+    document.body.dataset.cappyStyle = cappy;
+    document.body.dataset.backdropStyle = backdrop;
+    document.body.dataset.soundStyle = sound;
+    audio.setProfile(sound);
   }
 
   if (loadError) notifications.show(loadError.message, { title: 'Saved voyage could not be read', icon: '!', tone: 'danger', duration: 8_000 });
@@ -303,6 +374,9 @@ export function createGame(root, dependencies = {}) {
       forceBoo: (id) => store.mutate('debug-boo-force', (state) => forceBooOutcome(state, id)),
       catastrophe: () => store.mutate('debug-catastrophe', (state) => forceBooOutcome(state, 'house-always-wins')),
       clearEffects: () => store.mutate('debug-clear-effects', (state) => clearTemporaryEffects(state)),
+      spawnShine: (kind = 'normal') => store.mutate('debug-shine', (state) => {
+        spawnShine(state, { random: () => kind === 'corrupted' ? 0 : 1 });
+      }),
     },
   };
 }
@@ -312,7 +386,7 @@ function appTemplate(base) {
   <div class="app-shell">
     <header class="topbar">
       <a class="brand" href="${base}" aria-label="Cappy Clicker home"><span class="brand__stamp">CC</span><span><strong>Cappy Clicker</strong><small>Grand Tour · v2</small></span></a>
-      <div class="headline-counters"><div class="coin-counter"><img src="${base}assets/ui/kingdom-coin.webp" alt=""><span><b data-coins>0</b><small>Kingdom Coins</small></span></div><div><b data-cps>0</b><small>per second</small></div><div><b data-badges>0/250</b><small>passport stamps</small></div></div>
+      <div class="headline-counters"><div class="coin-counter"><img src="${base}assets/ui/kingdom-coin.webp" alt=""><span><b data-coins>0</b><small>Kingdom Coins</small></span></div><div><b data-cps>0</b><small>per second</small></div><div><b data-badges>0/${ACHIEVEMENTS.length}</b><small>passport stamps</small></div></div>
       <div class="topbar-actions"><span class="save-indicator" data-save-indicator>Fresh voyage</span><button type="button" data-open-save aria-label="Open save desk">Save</button><button type="button" data-open-settings aria-label="Open settings">⚙</button></div>
     </header>
     <section class="news-ticker" aria-label="Kingdom news"><span class="news-ticker__label">KINGDOM NEWS</span><div><span data-news-text>Loading the latest nonsense…</span></div></section>
@@ -329,12 +403,13 @@ function appTemplate(base) {
         <div class="stage-ticket"><span>Tip</span><p>Press <kbd>Space</kbd> anywhere outside a text box, or focus Cappy and press Enter.</p></div>
       </section>
       <section class="producer-shop" aria-labelledby="shop-title"><header class="shop-heading"><div><span class="eyebrow">Crazy Cap travel desk</span><h2 id="shop-title">Kingdom Producers</h2><p>Only destinations you have discovered appear here. Every number is the actual effective rate.</p></div><span class="shop-sticker">BUY<br>SMART-ISH</span></header><div class="producer-list" data-producer-list></div></section>
-      <aside class="right-rail" data-right-rail><nav class="rail-tabs" role="tablist" aria-label="Collections"><button type="button" role="tab" data-tab="upgrades">Upgrades</button><button type="button" role="tab" data-tab="moons">Moons</button><button type="button" role="tab" data-tab="achievements">Badges</button><button type="button" role="tab" data-tab="voyage">Voyage</button></nav><div class="rail-panel" data-panel="upgrades"></div><div class="rail-panel" data-panel="moons" hidden></div><div class="rail-panel" data-panel="achievements" hidden></div><div class="rail-panel" data-panel="voyage" hidden></div></aside>
+      <aside class="right-rail" data-right-rail><nav class="rail-tabs" role="tablist" aria-label="Collections"><button type="button" role="tab" data-tab="upgrades">Upgrades</button><button type="button" role="tab" data-tab="moons">Moons</button><button type="button" role="tab" data-tab="achievements">Badges</button><button type="button" role="tab" data-tab="style">Style</button><button type="button" role="tab" data-tab="voyage">Voyage</button><button type="button" role="tab" data-tab="ranks">Ranks</button></nav><div class="rail-panel" data-panel="upgrades"></div><div class="rail-panel" data-panel="moons" hidden></div><div class="rail-panel" data-panel="achievements" hidden></div><div class="rail-panel" data-panel="style" hidden></div><div class="rail-panel" data-panel="voyage" hidden></div><div class="rail-panel" data-panel="ranks" hidden></div></aside>
     </main>
     <section class="journey" data-journey aria-label="Kingdom journey progress"></section>
     <footer class="site-footer"><span>A personal, non-commercial fan project.</span><button type="button" data-open-dev title="Developer Lab is also available with Shift+D">Lab</button><span>Not affiliated with Nintendo.</span></footer>
   </div>
   <aside class="boo-widget" data-boo-widget aria-hidden="true"></aside>
+  <aside class="shine-widget" data-shine-widget aria-hidden="true"></aside>
   <div class="notification-stack" data-notifications aria-live="polite"></div>
   <dialog data-settings-dialog>${settingsDialog()}</dialog>
   <dialog data-save-dialog>${saveDialog()}</dialog>
@@ -348,7 +423,7 @@ function settingsDialog() {
 }
 
 function saveDialog() {
-  return `<form method="dialog" class="dialog-card save-dialog"><header><div><span class="eyebrow">Royal archive</span><h2>Save Desk</h2><p data-save-summary></p></div><button value="close" aria-label="Close">×</button></header><label>Export or paste a CAPPY2 save<textarea data-save-text rows="8" spellcheck="false" placeholder="Your exported save appears here."></textarea></label><div class="button-cluster"><button type="button" data-export-save>Export</button><button type="button" data-copy-save>Copy</button><button type="button" data-import-save>Import</button></div><p class="dialog-note">Imports are validated before the current voyage is replaced. v1 saves are intentionally unsupported.</p><footer><button type="button" class="danger-button" data-reset-save>Reset voyage…</button><button value="close">Done</button></footer></form>`;
+  return `<form method="dialog" class="dialog-card save-dialog"><header><div><span class="eyebrow">Royal archive</span><h2>Save Desk</h2><p data-save-summary></p></div><button value="close" aria-label="Close">×</button></header><label>Export or paste a CAPPY2 save<textarea data-save-text rows="8" spellcheck="false" placeholder="Your exported save appears here."></textarea></label><input type="file" accept=".txt,.cappy2,text/plain" data-save-file hidden><div class="button-cluster"><button type="button" data-export-save>Show export text</button><button type="button" data-download-save>Download file</button><button type="button" data-copy-save>Copy</button><button type="button" data-import-save>Import text</button><button type="button" data-choose-save-file>Import file…</button></div><p class="dialog-note">Imports are validated before the current voyage is replaced. Imported or Developer Lab voyages can view, but not submit to, the friendly online leaderboard.</p><footer><button type="button" class="danger-button" data-reset-save>Delete local save…</button><button value="close">Done</button></footer></form>`;
 }
 
 function offlineDialog() {

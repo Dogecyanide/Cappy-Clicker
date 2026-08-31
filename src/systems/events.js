@@ -8,8 +8,10 @@ export function pushNews(state, text, now = Date.now()) {
 }
 
 export function randomNews(state, random = Math.random, now = Date.now()) {
-  const recent = new Set(state.news.slice(0, 8).map(({ text }) => text));
-  const choices = NEWS.filter((line) => !recent.has(line));
+  const unseen = new Set(state.stats.uniqueNewsSeen ?? []);
+  const fresh = NEWS.filter((line) => !unseen.has(line));
+  const recent = new Set(state.news.slice(0, 30).map(({ text }) => text));
+  const choices = fresh.length ? fresh : NEWS.filter((line) => !recent.has(line));
   const text = choices[Math.floor(random() * choices.length)] ?? NEWS[0];
   pushNews(state, text, now);
   return text;
@@ -23,4 +25,3 @@ export function reactiveNews(state, type, replacements = {}, random = Math.rando
   pushNews(state, text, now);
   return text;
 }
-

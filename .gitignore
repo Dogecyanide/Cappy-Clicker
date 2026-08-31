@@ -5,3 +5,8 @@ test-results/
 .vite/
 *.log
 tmp/
+.env
+.env.local
+.env.*.local
+worker/leaderboard/.dev.vars
+worker/leaderboard/.wrangler/

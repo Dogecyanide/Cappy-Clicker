@@ -1,4 +1,6 @@
-export const NEWS = [
+import { PRODUCERS } from './buildings.js';
+
+const BASE_NEWS = [
   'Local Frog Denies Involvement in Sudden Coin Surplus',
   'New Donk Officials Ask Citizens to Stop Stacking Goombas on Taxis',
   'King Boo Casino Passes Inspection Conducted by King Boo',
@@ -36,7 +38,7 @@ export const NEWS = [
   'Royal Statistician Confirms 100% of Bad Ideas Began with a Slot Machine',
   'Local Toad Opens Souvenir Shop Inside Another Souvenir Shop',
   'Weather Forecast: Coins with a Chance of More Coins',
-  'Moon Collector Insists Sixteen Is a Sensible Number of Moons',
+  'Moon Collector Insists Fifty Is a Sensible Number of Moons; Shelf Requests Counsel',
   'Cappy Performs Barrel Roll; Nearby Barrel Files Complaint',
   'Economy Survives Another Upgrade Without Becoming Infinity',
   'King Boo Denies Laughing; Audio Recording Laughs During Interview',
@@ -51,21 +53,73 @@ export const NEWS = [
   'Breaking: Button Pressed; Experts Expect Additional Presses',
 ];
 
+const ROUTE_NEWS = PRODUCERS.flatMap((producer, index) => [
+  `${producer.name} Opens Stop ${index + 1}; Ribbon Immediately Submitted as Expense`,
+  `${producer.kingdom} Auditors Ask ${producer.name} to Explain “Very Scenic Overhead”`,
+  `${producer.series} Travel Desk Rates ${producer.name} Five Stars and One Raised Eyebrow`,
+]);
+
+const EXTRA_NEWS = [
+  'Multi Moon Shelf Reinforced After Optimistic Carpentry Incident',
+  'Shine Spotters Reminded That Staring at Empty Sky Is Not a Strategy',
+  'Gloom Shine Issues Apology Written Entirely in Purple Static',
+  'Cappy Wardrobe Adds Seventh Color and Eighth Opinion',
+  'Open League Officials Confirm Scores Are “For Fun, Please Breathe”',
+  'Grand Tour Map Folded Incorrectly, Discovers Three New Continents',
+  'Workshop Installs Four Hundredth Upgrade and One Coffee Machine',
+  'Passport Office Orders Larger Passport Office',
+  'Rainbow Road Freightway Adds Guardrail to Employee Suggestion Box',
+  'Comet Observatory Detects Distant Invoice Approaching at Light Speed',
+  'Delfino Plaza Sunshine Declared Locally Sourced',
+  'Bob-omb Battlefield Cannon Receives Frequent-Flyer Status',
+  'Super Bell Hill Cats Demand Vertical Scratching-Pole Zoning',
+  'Choco Mountain Denies Melting Allegations, Refuses Taste Test',
+  'Toad Town Bazaar Lists One Slightly Used Exponent',
+  'Luigi’s Mansion Appraisal Includes Forty-Six Uncooperative Tenants',
+  'Rogueport Trade Port Introduces Paperless Forms, Causes Existential Crisis',
+  'Beanbean Airport Luggage Carousel Begins Telling Jokes',
+  'World Crown Citadel Announces Casual Friday, Defines Casual as Crowned',
+  'Coconut Mall Escalator Wins Employee of the Month Again',
+];
+
+export const NEWS = [...BASE_NEWS, ...ROUTE_NEWS, ...EXTRA_NEWS];
+
 export const REACTIVE_NEWS = {
   purchase: [
     '{name} joins the voyage; accountants hide the nice calculator',
     'Fresh paperwork confirms ownership of {name}',
     '{name} expands despite several maps saying there is no room',
+    '{name} adds another desk; the desk adds another form',
+    'Tourists photograph {name}; accountants photograph the receipt',
+    '{name} reports record output and one missing stapler',
+    'A fresh shipment reaches {name} before the directions do',
+    '{name} hires locally, cosmically, and slightly diagonally',
   ],
   milestone: [
     '{name} reaches {amount}; tiny parade blocks two lanes',
     '{amount} {name} workers agree to split one enormous souvenir mug',
+    '{name} reaches {amount}; the group photo changes to panoramic mode',
+    'Ownership of {name} hits {amount}; zoning quietly gives up',
+    '{amount} units at {name} sign one very long birthday card',
+    '{name} milestone {amount} unlocks a workshop crate marked “probably safe”',
   ],
   moon: [
     '{name} collected; night sky asked to update inventory',
+    '{name} enters the album; nearby stars shuffle one seat over',
+    'Moon appraiser values {name} at “yes”',
+    '{name} clears customs after declaring one orbit',
+    'The Odyssey installs a stronger shelf for {name}',
   ],
   boo: [
     'King Boo result “{name}” declared fair by casino-shaped committee',
+    'Casino receipt for “{name}” arrives already haunted',
+    'King Boo files “{name}” under customer enrichment',
+    'Officials investigate “{name}”; officials are three Boos in a coat',
+  ],
+  shine: [
+    'Rare Shine “{name}” caught; sunglasses distributed to accounting',
+    'Sky event “{name}” resolves before anyone can optimize a waiting strategy',
+    'A passing Shine leaves “{name}” and one warm spot on the ledger',
+    'Shine result “{name}” briefly improves the local forecast',
   ],
 };
-

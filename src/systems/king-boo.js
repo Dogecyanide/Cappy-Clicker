@@ -147,6 +147,11 @@ export function addTimedEffect(state, effect) {
     const incoming = Number(effect.multiplier ?? 1);
     existing.multiplier = current < 1 || incoming < 1 ? Math.min(current, incoming) : Math.max(current, incoming);
   }
+  if ('amount' in effect) {
+    const current = Number(existing.amount ?? 0);
+    const incoming = Number(effect.amount ?? 0);
+    existing.amount = current < 0 || incoming < 0 ? Math.min(current, incoming) : Math.max(current, incoming);
+  }
   return existing;
 }
 

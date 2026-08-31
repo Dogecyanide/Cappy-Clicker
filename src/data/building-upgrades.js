@@ -1,7 +1,7 @@
 import { D, Decimal } from '../core/numbers.js';
 import { PRODUCERS } from './buildings.js';
 
-export const MILESTONES = [5, 15, 25, 50, 100, 150, 200];
+export const MILESTONES = [5, 15, 25, 50, 100, 150, 200, 350, 500, 750, 1000];
 
 // Every chain has its own voice. Keeping this copy beside the data makes it easy to
 // replace art or rebalance prices without touching the upgrade system.
@@ -188,24 +188,137 @@ const COPY = {
   ],
 };
 
-export const BUILDING_UPGRADES = PRODUCERS.flatMap((producer) => {
-  const copy = COPY[producer.id];
-  if (!copy) throw new Error(`Missing upgrade copy for ${producer.id}`);
-  return MILESTONES.map((milestone, index) => ({
-    id: `${producer.id}--${milestone}`,
-    producerId: producer.id,
-    milestone,
-    multiplier: 2,
-    name: copy[index][0],
-    flavour: copy[index][1],
-    motif: copy[index][2],
-    cost: D(producer.baseCost)
-      .mul(Decimal.pow(1.15, milestone))
-      .mul(6 + milestone * 1.8)
-      .ceil()
-      .toString(),
-  }));
-});
+const GENERIC_TITLES = [
+  'Opening Shift', 'Bulk Fare Contract', 'Second Stamp', 'Cross-Route Fusion', 'Century Engine',
+  'Series Reunion', 'Double-Century Drive', 'Grand Tour Gearbox', 'Network Jubilee',
+  'Seven-Fifty Skyline', 'One-Thousand Mastery',
+];
+const GENERIC_FLAVOUR = [
+  'The first workshop crate contains one useful lever and three decorative springs.',
+  'Future tickets are printed smaller, cheaper, and with considerably more confidence.',
+  'A second production line appears behind a curtain nobody remembers hanging.',
+  'Two neighbouring routes exchange blueprints and several extremely confused employees.',
+  'One hundred units agree that moderation was a tutorial mechanic.',
+  'Old friends from the same series arrive carrying multipliers and embarrassing photographs.',
+  'Two hundred units turn the workshop manual into a load-bearing wall.',
+  'The machinery now runs on ambition, souvenir grease, and numbers with commas.',
+  'Five hundred units form a network large enough to have its own weather forecast.',
+  'At seven hundred fifty, the skyline becomes mostly payroll.',
+  'One thousand units sign the mastery ledger; the pen immediately requests retirement.',
+];
+const GENERIC_MOTIFS = ['◆', '٪', '✦', '∞', 'Ⅽ', '◎', 'Ⅱ', '⚙', '⌁', '♜', '♛'];
 
+function copyFor(producer, index) {
+  const authored = COPY[producer.id]?.[index];
+  if (authored) return authored;
+  return [
+    `${producer.name}: ${GENERIC_TITLES[index]}`,
+    `${producer.name} — ${GENERIC_FLAVOUR[index]}`,
+    GENERIC_MOTIFS[index],
+  ];
+}
+
+function producerEffects(producer, producerIndex, milestone) {
+  const partner = PRODUCERS[(producerIndex + 1) % PRODUCERS.length];
+  if (milestone === 5) return [{ type: 'producer-multiplier', producerId: producer.id, multiplier: 2 }];
+  if (milestone === 15) return [{ type: 'producer-discount', producerId: producer.id, amount: 0.03 }];
+  if (milestone === 25) return [{ type: 'producer-multiplier', producerId: producer.id, multiplier: 2 }];
+  if (milestone === 50) return [{ type: 'fusion', producerId: producer.id, partnerId: partner.id, multiplier: 1.5 }];
+  if (milestone === 100) return [{ type: 'producer-multiplier', producerId: producer.id, multiplier: 3 }];
+  if (milestone === 150) return [{ type: 'series-multiplier', series: producer.series, multiplier: 1.15 }];
+  if (milestone === 200) return [{ type: 'producer-multiplier', producerId: producer.id, multiplier: 3 }];
+  if (milestone === 350) return [{ type: 'producer-multiplier', producerId: producer.id, multiplier: 4 }];
+  if (milestone === 500) return [
+    { type: 'producer-multiplier', producerId: producer.id, multiplier: 2 },
+    { type: 'producer-discount', producerId: producer.id, amount: 0.05 },
+  ];
+  if (milestone === 750) return [{ type: 'producer-multiplier', producerId: producer.id, multiplier: 5 }];
+  return [
+    { type: 'producer-multiplier', producerId: producer.id, multiplier: 10 },
+    { type: 'global-additive', amount: 0.0025 },
+  ];
+}
+
+function producerEffectLabel(producer, producerIndex, milestone) {
+  const partner = PRODUCERS[(producerIndex + 1) % PRODUCERS.length];
+  if (milestone === 15) return `${producer.name} future prices −3%`;
+  if (milestone === 50) return `Fusion: ${producer.name} + ${partner.name} ×1.5`;
+  if (milestone === 150) return `${producer.series} producers ×1.15`;
+  if (milestone === 500) return `${producer.name} ×2 and future prices −5%`;
+  if (milestone === 1000) return `${producer.name} ×10 and +0.25% global production`;
+  return `${producer.name} production ×${({ 5: 2, 25: 2, 100: 3, 200: 3, 350: 4, 750: 5 })[milestone]}`;
+}
+
+export const PRODUCER_UPGRADES = PRODUCERS.flatMap((producer, producerIndex) =>
+  MILESTONES.map((milestone, index) => {
+    const copy = copyFor(producer, index);
+    return {
+      id: `${producer.id}--${milestone}`,
+      track: 'producer',
+      producerId: producer.id,
+      milestone,
+      previousId: index ? `${producer.id}--${MILESTONES[index - 1]}` : null,
+      effects: producerEffects(producer, producerIndex, milestone),
+      effectLabel: producerEffectLabel(producer, producerIndex, milestone),
+      name: copy[0],
+      flavour: copy[1],
+      motif: copy[2],
+      cost: D(producer.baseCost)
+        .mul(Decimal.pow(1.15, milestone))
+        .mul(6 + milestone * 1.8)
+        .ceil()
+        .toString(),
+    };
+  }),
+);
+
+const TECHNIQUE_COPY = [
+  ['Reinforced Brim', 'Cappy receives a sturdier inner band and a tiny certificate of structural drama.', '🧢', '1e5', { type: 'flat-click-multiplier', multiplier: 1.5 }],
+  ['Payroll Ricochet', 'A sliver of production follows every returning throw without leaving its desk.', '↩', '1e7', { type: 'click-assist-add', amount: 0.0005 }],
+  ['Lucky Stitch', 'One red thread is statistically significant and refuses to explain why.', '✦', '1e9', { type: 'critical-chance-add', amount: 0.005 }],
+  ['Longer Follow-Through', 'The combo clock learns patience in increments of one tenth of a second.', '⏱', '1e11', { type: 'combo-window-add', milliseconds: 100 }],
+  ['Sunspot Radar', 'Cappy notices rare Shines two seconds before everybody else starts yelling.', '☀', '1e13', { type: 'shine-duration-add', seconds: 2 }],
+  ['Boomerang Bookkeeping', 'Every return flight now carries a second, smaller receipt.', '↻', '1e16', { type: 'flat-click-multiplier', multiplier: 1.5 }],
+  ['Crew-Powered Toss', 'The route contributes a polite fraction of its output to each manual throw.', '⚙', '1e19', { type: 'click-assist-add', amount: 0.0005 }],
+  ['Review-Proof Crown', 'Critical acclaim arrives half a percent more often and wears white gloves.', '♕', '1e22', { type: 'critical-chance-add', amount: 0.005 }],
+  ['Elastic Rhythm', 'The combo window stretches without becoming an invitation to autoclick.', '♬', '1e25', { type: 'combo-window-add', milliseconds: 100 }],
+  ['Shine RSVP Card', 'Rare guests remain visible long enough to sign the celestial guest book.', '✉', '1e28', { type: 'shine-duration-add', seconds: 2 }],
+  ['Triple-Lined Crown', 'Three layers of felt turn one coin into a modestly larger argument.', 'Ⅲ', '1e31', { type: 'flat-click-multiplier', multiplier: 1.5 }],
+  ['Census Slingshot', 'Every owned route adds a harmless speck of momentum to Cappy’s return.', '⌁', '1e34', { type: 'click-assist-add', amount: 0.0005 }],
+  ['Probability Feather', 'The feather points toward the luckier five thousandths of possibility.', '🪶', '1e37', { type: 'critical-chance-add', amount: 0.005 }],
+  ['Metronome Passport', 'Border control grants combos one additional beat to present their papers.', '▥', '1e40', { type: 'combo-window-add', milliseconds: 100 }],
+  ['Solar Lure', 'A tasteful glint encourages Shines to linger without making waiting optimal.', '◉', '1e43', { type: 'shine-duration-add', seconds: 3 }],
+  ['Orbiting Inner Band', 'The hat now contains a very small orbit with surprisingly good leverage.', '◎', '1e46', { type: 'flat-click-multiplier', multiplier: 1.5 }],
+  ['Grand-Tour Assist', 'Automation lends one final fraction of a percent to the throwing department.', '🗺', '1e49', { type: 'click-assist-add', amount: 0.0005 }],
+  ['Critic’s Moon Pin', 'The pin attracts praise, lightning, and another half-percent of criticals.', '☾', '1e52', { type: 'critical-chance-add', amount: 0.005 }],
+  ['Five-Star Impact', 'Critical throws hit half a step harder without changing their silent dignity.', '★', '1e55', { type: 'critical-multiplier-add', amount: 0.5 }],
+  ['Celestial Finder’s Fee', 'Rare Shine rewards pay a little extra for being spotted the old-fashioned way.', '✺', '1e58', { type: 'shine-payout', multiplier: 1.25 }],
+];
+
+export const TECHNIQUE_UPGRADES = TECHNIQUE_COPY.map(([name, flavour, motif, unlockAt, effect], index) => ({
+  id: `cappy-technique-${index + 1}`,
+  track: 'technique',
+  producerId: null,
+  milestone: null,
+  previousId: index ? `cappy-technique-${index}` : null,
+  unlockAt,
+  effects: [effect],
+  effectLabel: techniqueEffectLabel(effect),
+  name,
+  flavour,
+  motif,
+  cost: D(unlockAt).mul(5).toString(),
+}));
+
+function techniqueEffectLabel(effect) {
+  if (effect.type === 'flat-click-multiplier') return `Flat Cappy value ×${effect.multiplier}`;
+  if (effect.type === 'click-assist-add') return `Cappy production assist +${effect.amount * 100}%`;
+  if (effect.type === 'critical-chance-add') return `Critical chance +${effect.amount * 100}%`;
+  if (effect.type === 'critical-multiplier-add') return `Critical power +${effect.amount}×`;
+  if (effect.type === 'combo-window-add') return `Combo window +${effect.milliseconds}ms`;
+  if (effect.type === 'shine-duration-add') return `Rare Shines linger +${effect.seconds}s`;
+  return `Rare Shine payouts ×${effect.multiplier}`;
+}
+
+export const BUILDING_UPGRADES = [...PRODUCER_UPGRADES, ...TECHNIQUE_UPGRADES];
 export const BUILDING_UPGRADE_BY_ID = Object.fromEntries(BUILDING_UPGRADES.map((upgrade) => [upgrade.id, upgrade]));
-

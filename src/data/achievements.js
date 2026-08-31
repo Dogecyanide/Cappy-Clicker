@@ -1,7 +1,9 @@
 import { PRODUCERS } from './buildings.js';
 import { POWER_MOONS } from './power-moons.js';
+import { SHINE_OUTCOMES } from './shine-outcomes.js';
 
-const ownershipTargets = [1, 25, 50, 100, 200];
+const ownershipTargets = [1, 10, 25, 50, 100, 200, 350, 500, 750, 1000];
+const legacyOwnershipTargets = [1, 25, 50, 100, 200];
 
 const ownershipCopy = {
   'frog-capture': [
@@ -151,9 +153,22 @@ const row = (category, id, name, flavour, type, target, scope) => ({
   condition: { type, target, ...(scope === undefined ? {} : { scope }) },
 });
 
-const producerAchievements = PRODUCERS.flatMap((producer) => ownershipCopy[producer.id].map(([name, flavour], index) =>
-  row('producer_ownership', `own-${producer.id}-${ownershipTargets[index]}`, name, flavour, 'producer-owned', ownershipTargets[index], producer.id),
-));
+const OWNERSHIP_TITLES = [
+  'First Boarding', 'Ten-Unit Tour', 'Quarter-Century Crew', 'Fifty-Strong Route', 'Century Census',
+  'Two-Hundred Takeover', 'Three-Fifty Skyline', 'Five-Hundred Network', 'Seven-Fifty Dominion', 'One-Thousand Mastery',
+];
+
+function ownershipAchievement(producer, target, index) {
+  const authoredIndex = legacyOwnershipTargets.indexOf(target);
+  const authored = authoredIndex >= 0 ? ownershipCopy[producer.id]?.[authoredIndex] : null;
+  const name = authored?.[0] ?? `${producer.name}: ${OWNERSHIP_TITLES[index]}`;
+  const flavour = authored?.[1] ?? `${producer.name} now counts ${target.toLocaleString('en-US')} units; the group photograph requires its own horizon.`;
+  return row('producer_ownership', `own-${producer.id}-${target}`, name, flavour, 'producer-owned', target, producer.id);
+}
+
+const producerAchievements = PRODUCERS.flatMap((producer) =>
+  ownershipTargets.map((target, index) => ownershipAchievement(producer, target, index)),
+);
 
 const economy = [
   ['100', 'Coin Purse Person', 'The purse jingles loudly enough to qualify as a tiny parade.'],
@@ -191,6 +206,24 @@ economy.push(...[
   ['1e60', 'Coins Before Time', 'Production finishes several seconds before causality begins.'],
 ].map(([target, name, flavour]) => row('economy', `cps-${target}`, name, flavour, 'total-cps', target)));
 
+economy.push(...[
+  ['1e72', 'Ledger Leaves the Solar System', 'The account balance now requires a launch window.', 'lifetime-coins'],
+  ['1e84', 'Octovigintillion Overnight Bag', 'The suitcase has more zeros than socks.', 'lifetime-coins'],
+  ['1e96', 'Currency Without a Map', 'Cartographers decline to chart the exponent.', 'lifetime-coins'],
+  ['1e108', 'Thirty-Sixth-Degree Fortune', 'The treasury has developed its own academic department.', 'lifetime-coins'],
+  ['1e120', 'Quadragintillion Quartermaster', 'The quartermaster requests several larger quarters.', 'lifetime-coins'],
+  ['1e132', 'Money Past Midnight', 'Every clock in the vault now displays an exponent.', 'lifetime-coins'],
+  ['1e150', 'Fifty-Zero Frontier', 'The final comma rode into the sunset several pages ago.', 'lifetime-coins'],
+  ['1e180', 'Bank of Deep Time', 'Compound interest has outlived several geological eras.', 'lifetime-coins'],
+  ['1e72', 'Production Beyond Weather', 'The forecast has been replaced by a very large rate.', 'total-cps'],
+  ['1e84', 'Factory Constellation', 'Individual workshops are no longer visible without a telescope.', 'total-cps'],
+  ['1e96', 'Per-Second Planet', 'One second of output now needs a planetary customs declaration.', 'total-cps'],
+  ['1e108', 'Causality on Payroll', 'Tomorrow’s coins have started arriving for yesterday’s shift.', 'total-cps'],
+  ['1e120', 'Quadragintillion Current', 'The production stream has been granted ocean status.', 'total-cps'],
+  ['1e135', 'Rate of No Return', 'The counter crossed a line the manual forgot to draw.', 'total-cps'],
+  ['1e150', 'One Second, Fifty Zeros', 'The route produces a number best read from a safe distance.', 'total-cps'],
+].map(([target, name, flavour, type]) => row('economy', `${type === 'total-cps' ? 'cps' : 'lifetime'}-${target}-grand`, name, flavour, type, target)));
+
 const clicking = [
   ['tosses-1', 'Hat in the Ring', 'Cappy has officially entered the throwing business.', 'total-tosses', 1],
   ['tosses-10', 'Toss Salad', 'Ten throws, lightly dressed with reckless wrist movement.', 'total-tosses', 10],
@@ -219,6 +252,19 @@ const clicking = [
   ['manual-1e18', 'Wrist-Made Empire', 'Automation watches your manual fortune with professional jealousy.', 'manual-coins', '1e18'],
 ].map(([id, name, flavour, type, target]) => row('clicking', id, name, flavour, type, target));
 
+clicking.push(...[
+  ['tosses-1e7', 'Ten-Million-Mile Brim', 'Cappy requests a passport with stronger binding.', 'total-tosses', 1e7],
+  ['tosses-1e8', 'The Hundred-Million Return', 'At this point coming back is less a trick than a law of nature.', 'total-tosses', 1e8],
+  ['crit-1e5', 'Five-Figure Reviews', 'One hundred thousand critics all used the word impact.', 'critical-tosses', 1e5],
+  ['crit-1e6', 'Million-Star Rating', 'The review scale has become a navigational hazard.', 'critical-tosses', 1e6],
+  ['combo-250', 'Quarter-Thousand Cadence', 'Two hundred fifty throws land inside one increasingly nervous rhythm.', 'max-combo', 250],
+  ['combo-500', 'Metronome Monarch', 'Five hundred chained tosses leave no room for an offbeat.', 'max-combo', 500],
+  ['click-value-1e24', 'Yottahat', 'A single manual toss now carries an unreasonable prefix.', 'click-value', '1e24'],
+  ['click-value-1e48', 'Brim Event Horizon', 'The coin value bends light before Cappy returns.', 'click-value', '1e48'],
+  ['manual-1e36', 'Handmade Undecillion', 'Automation sends a respectful but confused fruit basket.', 'manual-coins', '1e36'],
+  ['manual-1e72', 'Wrist Beyond Measure', 'The manual-income ledger has switched to interpretive dance.', 'manual-coins', '1e72'],
+].map(([id, name, flavour, type, target]) => row('clicking', id, name, flavour, type, target)));
+
 const upgrades = [
   [1, 'Read the Manual', 'One upgrade installed; several warning labels remain decorative.'],
   [3, 'Three Easy Payments', 'The fourth payment was replaced by suspicious efficiency.'],
@@ -242,6 +288,29 @@ const upgrades = [
   [140, 'Every Switch Flipped', 'All one hundred forty upgrades glow; the power bill refuses to comment.'],
 ].map(([target, name, flavour]) => row('upgrades', `upgrades-${target}`, name, flavour, 'upgrades-owned', target));
 
+upgrades.push(...[
+  [160, 'One-Sixty Workshop', 'The spare parts drawer has filed for municipal status.'],
+  [180, 'Hundred-Eighty Tune-Up', 'Every loose screw now has a supervisor and matching lanyard.'],
+  [200, 'Two Hundred Improvements', 'The original machine is preserved in one ceremonial washer.'],
+  [220, 'Fusion Catalogue', 'Neighbouring routes exchange blueprints and awkward small talk.'],
+  [240, 'Workshop Weather System', 'So many fans are running that engineering now issues forecasts.'],
+  [260, 'Route Retrofit Registry', 'Every destination owns at least one stamp marked enhanced.'],
+  [280, 'Two-Eighty Overdrive', 'The warranty has stopped making eye contact.'],
+  [300, 'Three Hundred Installed', 'The upgrade counter enters a new century carrying a wrench.'],
+  [320, 'Toolbox Archipelago', 'Separate toolboxes have formed islands and begun trading sockets.'],
+  [340, 'Blueprint Blue Shift', 'Plans move so quickly their ink changes color.'],
+  [360, 'Full-Circle Machinery', 'Every cog turns toward another cog with excellent references.'],
+  [380, 'Almost Four Hundred', 'The remaining empty sockets feel increasingly conspicuous.'],
+  [400, 'Four-Hundred Horsepower Hat', 'No horses were consulted about the unit conversion.'],
+  [410, 'Late-Game Lubrication', 'The oil can now requires an exponent on its label.'],
+  [420, 'Answer to Every Upgrade', 'The workshop found the answer and installed it upside down.'],
+  [430, 'Ten Routes to Go', 'Mastery crates crowd the final platform.'],
+  [440, 'Every Producer Mastered', 'Forty thousand-unit ledgers close with one deafening stamp.'],
+  [450, 'Technique Shelf Complete', 'Cappy’s training manuals occupy their own observation deck.'],
+  [459, 'One Switch Remaining', 'A single unflipped switch radiates unbearable narrative importance.'],
+  [460, 'Grand Workshop Complete', 'Every route and every Cappy technique is permanently installed.'],
+].map(([target, name, flavour]) => row('upgrades', `upgrades-${target}`, name, flavour, 'upgrades-owned', target)));
+
 const moonCopy = [
   ['Mantelpiece Orbit', 'It lights the room and judges every lesser souvenir.'],
   ['A Tricky Little Satellite', 'This moon returned from a cap toss wearing a smug expression.'],
@@ -262,7 +331,13 @@ const moonCopy = [
 ];
 
 const moons = POWER_MOONS.map((moon, index) => row(
-  'moons', `badge-${moon.id}`, moonCopy[index][0], moonCopy[index][1], 'moon-collected', 1, moon.id,
+  'moons',
+  `badge-${moon.id}`,
+  moonCopy[index]?.[0] ?? `Moon ${index + 1}: ${moon.name}`,
+  moonCopy[index]?.[1] ?? `${moon.name} joins the album in slot ${index + 1}, where it immediately begins reflecting on its purchase price.`,
+  'moon-collected',
+  1,
+  moon.id,
 ));
 
 const kingBoo = [
@@ -288,6 +363,19 @@ const kingBoo = [
   ['boo-losses-1e12', 'Casino Tax Deduction', 'A trillion lost coins have been reclassified as spectral tuition.', 'boo-coins-lost', '1e12'],
 ].map(([id, name, flavour, type, target, scope]) => row('king_boo', id, name, flavour, type, target, scope));
 
+kingBoo.push(...[
+  ['boo-seen-25', 'Quarter-Century Haunting', 'King Boo has appeared twenty-five times and paid rent exactly never.', 'boo-encounters', 25],
+  ['boo-seen-100', 'Permanent Pop-Up Tenant', 'One hundred apparitions qualify the casino as browser furniture.', 'boo-encounters', 100],
+  ['boo-spin-250', 'Leveraged Position', 'Two hundred fifty pulls have given the lever excellent posture.', 'boo-spins', 250],
+  ['boo-spin-500', 'House Regular', 'The house knows your order and still refuses to comp the onions.', 'boo-spins', 500],
+  ['boo-positive-50', 'Fifty Friendly Ghosts', 'A suspiciously long list of wins makes the odds table sweat.', 'boo-positive', 50],
+  ['boo-negative-50', 'Haunted Deductible', 'Fifty losses are now itemized under lessons allegedly learned.', 'boo-negative', 50],
+  ['boo-neutral-50', 'Punchline Pension', 'Fifty joke outcomes mature into no monetary value whatsoever.', 'boo-neutral', 50],
+  ['boo-ignored-50', 'Spectral Call Screening', 'Fifty silent rejections leave King Boo practicing voicemail greetings.', 'boo-ignored', 50],
+  ['boo-effects-expired-50', 'Curse Compost', 'Fifty expired effects return harmlessly to the haunted soil.', 'effects-expired', 50],
+  ['boo-losses-1e48', 'Ghost Economy Bailout', 'The casino swallowed an undecillion-scale lesson and asked for dessert.', 'boo-coins-lost', '1e48'],
+].map(([id, name, flavour, type, target, scope]) => row('king_boo', id, name, flavour, type, target, scope)));
+
 const discoveryCopy = [
   ['A Leap Abroad', 'Your voyage begins with one frog and no defensible itinerary.'],
   ['Checked In at Bonneton', 'The border agent stamped your passport and adjusted your collar.'],
@@ -312,8 +400,64 @@ const discoveryCopy = [
 ];
 
 const discovery = PRODUCERS.map((producer, index) => row(
-  'discovery', `discover-${producer.id}`, discoveryCopy[index][0], discoveryCopy[index][1], 'producer-discovered', 1, producer.id,
+  'discovery',
+  `discover-${producer.id}`,
+  discoveryCopy[index]?.[0] ?? `Stop ${index + 1}: ${producer.name}`,
+  discoveryCopy[index]?.[1] ?? `${producer.name} appears on the grand-tour map at stop ${index + 1}, accompanied by one extremely optimistic route line.`,
+  'producer-discovered',
+  1,
+  producer.id,
 ));
+
+const shineAchievements = [
+  [1, 'A Ray of Clickable Hope', 'The first rare Shine is caught before it can reconsider.', 'shines-claimed'],
+  [5, 'Five-Star Sunblock', 'Five Shines have tested the click target and found it decisive.', 'shines-claimed'],
+  [10, 'Ten Little Sunspots', 'The rare-event ledger now needs sunglasses.', 'shines-claimed'],
+  [25, 'Quarter-Century Daylight', 'Twenty-five Shines make waiting for one look statistically reckless.', 'shines-claimed'],
+  [50, 'Solar Collection Agency', 'Fifty rare visitors have paid their temporary bonuses.', 'shines-claimed'],
+  [100, 'Century of Sunshine', 'One hundred Shines turn coincidence into a weather pattern.', 'shines-claimed'],
+  [250, 'Two-Fifty Solar Census', 'The sky recognizes your cursor on sight.', 'shines-claimed'],
+  [10, 'Ten Suns Spotted', 'Even the missed ones count as excellent celestial gossip.', 'shines-seen'],
+  [50, 'Fifty Suns on Radar', 'The Shine detector now has its own break room.', 'shines-seen'],
+  [1, 'First Gloom', 'A corrupted Shine proved that even daylight can have bad paperwork.', 'corrupted-shines'],
+  [5, 'Purple Forecast', 'Five Gloom Shines make the weather report noticeably less reassuring.', 'corrupted-shines'],
+  [25, 'Eclipse Collector', 'Twenty-five corrupted suns glare from the risk register.', 'corrupted-shines'],
+  [1, 'The One That Got Away', 'A Shine escaped while the cursor was handling other responsibilities.', 'shines-missed'],
+  [25, 'Cloudy with a Chance of Regret', 'Twenty-five missed Shines demonstrate healthy non-optimization.', 'shines-missed'],
+  [3, 'Solar Hat Trick', 'Three consecutive Shines are caught without a cloud between them.', 'shine-streak'],
+  [10, 'Ten-Ray Streak', 'Ten catches in a row give the sun a performance review.', 'shine-streak'],
+].map(([target, name, flavour, type]) => row('shines', `${type}-${target}`, name, flavour, type, target));
+
+shineAchievements.push(...SHINE_OUTCOMES.map((outcome) => row(
+  'shines',
+  `shine-outcome-${outcome.id}`,
+  `Shine Result: ${outcome.title}`,
+  `${outcome.description} The passport records the result with a tiny sun-shaped stamp.`,
+  'shine-outcome-seen',
+  1,
+  outcome.id,
+)));
+
+const cosmeticAchievements = [
+  [4, 'First Wardrobe Purchase', 'A fourth cosmetic proves the default shelf was only a suggestion.'],
+  [6, 'Carry-On Collection', 'Six styles fit inside a bag if the laws of volume remain polite.'],
+  [9, 'Nine Looks, One Passport', 'Customs asks which version of Cappy is declaring the luggage.'],
+  [12, 'Style Stopover', 'Twelve cosmetics turn the cabin into a very small boutique.'],
+  [15, 'Fifteen-Fold Makeover', 'The voyage changes outfits more often than kingdoms.'],
+  [18, 'Full Paid Collection', 'Every purchasable style now has a receipt and shelf space.'],
+  [21, 'Complete Cosmetic Catalogue', 'All hats, backdrops, and sound packs are permanently owned.'],
+].map(([target, name, flavour]) => row('cosmetics', `cosmetics-owned-${target}`, name, flavour, 'cosmetics-owned', target));
+
+cosmeticAchievements.push(...[
+  ['cappy', 2, 'Second Hat Opinion', 'Cappy can finally disagree with himself about color.'],
+  ['cappy', 4, 'Brim Quartet', 'Four hat finishes enter; one lint roller leaves.'],
+  ['cappy', 7, 'Every Cappy Color', 'The complete brim spectrum hangs proudly in the cabin.'],
+  ['backdrop', 2, 'Change of Scenery', 'A second backdrop makes the same empire look freshly travelled.'],
+  ['backdrop', 4, 'Four-Sky Forecast', 'The window can now display four mutually exclusive kinds of weather.'],
+  ['backdrop', 7, 'Every Horizon', 'All seven voyage backdrops are ready behind the paperwork.'],
+  ['sound', 4, 'Quartet of Clicks', 'Four sound packs disagree musically about what a purchase means.'],
+  ['sound', 7, 'Full Soundcheck', 'Every synthesized sound pack has taken a bow.'],
+].map(([scope, target, name, flavour]) => row('cosmetics', `cosmetics-${scope}-${target}`, name, flavour, 'cosmetics-category-owned', target, scope)));
 
 const misc = [
   ['offline-return', 'Welcome Back, Probably', 'The producers worked unsupervised and only some furniture is missing.', 'offline-claims', 1],
@@ -334,24 +478,29 @@ const misc = [
   ['days-7', 'Week-Long Layover', 'Seven separate days now qualify this clicker as a travel arrangement.', 'play-days', 7],
   ['autosaves-100', 'Saved by the Bell', 'One hundred autosaves protected the voyage from dramatic browser exits.', 'autosaves', 100],
   ['performance-all', 'Three-Speed Tourist', 'Full, Reduced, and Potato modes have each witnessed your management style.', 'performance-modes', 3],
-  ['other-249', 'The Final Stamp', 'Every other badge is present; this one closes the overstuffed passport.', 'other-achievements', 249],
+  ['other-249', 'The Final Stamp', 'Every other badge is present; this one closes the truly unreasonable passport.', 'other-achievements', 699],
 ].map(([id, name, flavour, type, target]) => row('misc', `misc-${id}`, name, flavour, type, target));
 
+misc.push(row('misc', 'misc-five-multi-moons', 'Five Multi Moons', 'All five triple-Moon milestones occupy one structurally reinforced album page.', 'multi-moons', 5));
+
 export const ACHIEVEMENTS = [
-  ...producerAchievements, ...economy, ...clicking, ...upgrades, ...moons, ...kingBoo, ...discovery, ...misc,
+  ...producerAchievements, ...economy, ...clicking, ...upgrades, ...moons, ...kingBoo,
+  ...discovery, ...shineAchievements, ...cosmeticAchievements, ...misc,
 ];
 
 export const ACHIEVEMENT_BY_ID = Object.fromEntries(ACHIEVEMENTS.map((achievement) => [achievement.id, achievement]));
 
 export const ACHIEVEMENT_CATEGORY_COUNTS = {
-  producer_ownership: 100,
-  economy: 30,
-  clicking: 25,
-  upgrades: 20,
-  moons: 16,
-  king_boo: 20,
-  discovery: 20,
-  misc: 19,
+  producer_ownership: 400,
+  economy: 45,
+  clicking: 35,
+  upgrades: 40,
+  moons: 50,
+  king_boo: 30,
+  discovery: 40,
+  shines: 25,
+  cosmetics: 15,
+  misc: 20,
 };
 
 export const CONDITION_TYPES = new Set([
@@ -363,5 +512,6 @@ export const CONDITION_TYPES = new Set([
   'save-imports', 'buy-max-uses', 'largest-bulk', 'producer-types-owned', 'producer-types-discovered',
   'zero-after-purchase', 'tiny-leftover', 'simultaneous-effects', 'unique-news', 'backdrops-seen',
   'play-seconds', 'play-days', 'autosaves', 'performance-modes', 'other-achievements',
+  'shines-claimed', 'shines-seen', 'corrupted-shines', 'shines-missed', 'shine-streak',
+  'shine-outcome-seen', 'cosmetics-owned', 'cosmetics-category-owned', 'multi-moons',
 ]);
-

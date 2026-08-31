@@ -4,6 +4,7 @@ import { saveToStorage } from './save.js';
 import { updateProducerDiscovery } from '../systems/buildings.js';
 import { evaluateAchievements } from '../systems/achievements.js';
 import { updateBoo } from '../systems/king-boo.js';
+import { updateShine } from '../systems/shines.js';
 import { randomNews } from '../systems/events.js';
 
 export function createGameLoop(store, hooks = {}) {
@@ -44,6 +45,10 @@ export function createGameLoop(store, hooks = {}) {
     if (booResult.spawned) hooks.onBooSpawn?.();
     if (booResult.ignored) hooks.onBooIgnored?.();
     if (booResult.resolved) hooks.onBooResolved?.(booResult.resolved);
+
+    const shineResult = updateShine(state, { now, active: visible });
+    if (shineResult.spawned) hooks.onShineSpawn?.();
+    if (shineResult.missed) hooks.onShineMissed?.();
 
     const discovered = updateProducerDiscovery(state);
     if (discovered.length) hooks.onDiscovery?.(discovered);

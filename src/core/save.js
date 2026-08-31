@@ -1,14 +1,16 @@
 import { D, Decimal, isFiniteDecimal } from './numbers.js';
-import { createInitialState, randomBooDelay, SAVE_VERSION } from './state.js';
+import { createInitialState, randomBooDelay, randomShineDelay, SAVE_VERSION } from './state.js';
 import { PRODUCERS } from '../data/buildings.js';
 import { BUILDING_UPGRADE_BY_ID } from '../data/building-upgrades.js';
 import { ACHIEVEMENT_BY_ID } from '../data/achievements.js';
 import { POWER_MOON_BY_ID } from '../data/power-moons.js';
 import { BOO_OUTCOME_BY_ID } from '../data/boo-outcomes.js';
+import { SHINE_OUTCOME_BY_ID } from '../data/shine-outcomes.js';
+import { COSMETIC_BY_ID, DEFAULT_COSMETICS, DEFAULT_EQUIPPED_COSMETICS } from '../data/cosmetics.js';
 
 export const SAVE_KEY = 'cappy-clicker-v2';
 
-const DECIMAL_STAT_KEYS = ['coinsFromClicks', 'coinsFromProduction', 'offlineEarned', 'booCoinsLost'];
+const DECIMAL_STAT_KEYS = ['coinsFromClicks', 'coinsFromProduction', 'offlineEarned', 'booCoinsLost', 'shineCoins'];
 const STRING_ARRAY_STAT_KEYS = ['booDistinct', 'uniqueNewsSeen', 'backdropsSeen', 'playDays', 'performanceModesUsed'];
 const EFFECT_TYPES = new Set([
   'global-additive', 'production-multiplier', 'click-multiplier', 'price-multiplier',
@@ -42,8 +44,14 @@ export function deserializeState(serialized, now = Date.now()) {
 
   state.upgrades = uniqueArray(raw.upgrades).filter((id) => BUILDING_UPGRADE_BY_ID[id]);
   state.moons = uniqueArray(raw.moons).filter((id) => POWER_MOON_BY_ID[id]);
-  state.discoveredProducers = uniqueArray(raw.discoveredProducers).filter((id) => state.producers[id] !== undefined);
-  if (!state.discoveredProducers.length) state.discoveredProducers = PRODUCERS.slice(0, 2).map(({ id }) => id);
+  state.cosmetics = sanitizeCosmetics(raw.cosmetics);
+  const carriedDiscoveries = new Set(uniqueArray(raw.discoveredProducers).filter((id) => state.producers[id] !== undefined));
+  state.discoveredProducers = PRODUCERS
+    .filter((producer, index) => index < 2
+      || state.producers[producer.id] > 0
+      || carriedDiscoveries.has(producer.id)
+      || state.lifetimeCoins.gte(D(producer.baseCost).mul(0.25)))
+    .map(({ id }) => id);
 
   state.achievements = {};
   for (const [id, record] of Object.entries(raw.achievements ?? {})) {
@@ -55,9 +63,11 @@ export function deserializeState(serialized, now = Date.now()) {
     ? raw.activeEffects.filter(validEffect).map(sanitizeEffect)
     : [];
   state.settings = sanitizeSettings(state.settings, raw.settings);
+  state.integrity = sanitizeIntegrity(raw.integrity);
   state.combo = sanitizeCombo(state.combo, raw.combo);
   state.lastSaveAt = finiteNumber(raw.lastSaveAt, now);
   state.boo = sanitizeBoo(state.boo, raw.boo, state.lastSaveAt, now);
+  state.shine = sanitizeShine(state.shine, raw.shine, state.lastSaveAt, now);
   state.news = Array.isArray(raw.news)
     ? raw.news.filter((item) => item && typeof item.text === 'string').slice(0, 30).map((item) => ({ text: item.text.slice(0, 500), at: finiteNumber(item.at, now) }))
     : [];
@@ -111,6 +121,7 @@ function sanitizeStats(defaults, value) {
   }
   stats.booOutcomeCounts = sanitizeCountMap(raw.booOutcomeCounts, new Set(Object.keys(BOO_OUTCOME_BY_ID)));
   stats.booTierCounts = sanitizeCountMap(raw.booTierCounts, new Set(['positive', 'neutral', 'mild-negative', 'severe-negative', 'catastrophic']));
+  stats.shineOutcomeCounts = sanitizeCountMap(raw.shineOutcomeCounts, new Set(Object.keys(SHINE_OUTCOME_BY_ID)));
   const streak = raw.booStreak && typeof raw.booStreak === 'object' ? raw.booStreak : defaults.booStreak;
   stats.booStreak = {
     tier: ['positive', 'neutral', 'negative'].includes(streak.tier) ? streak.tier : '',
@@ -134,7 +145,24 @@ function sanitizeSettings(defaults, value) {
     sound: typeof raw.sound === 'boolean' ? raw.sound : defaults.sound,
     reducedMotion: typeof raw.reducedMotion === 'boolean' ? raw.reducedMotion : defaults.reducedMotion,
     numberFormat: ['words', 'scientific'].includes(raw.numberFormat) ? raw.numberFormat : defaults.numberFormat,
+    leaderboardName: typeof raw.leaderboardName === 'string' ? raw.leaderboardName.trim().slice(0, 24) : defaults.leaderboardName,
   };
+}
+
+function sanitizeCosmetics(value) {
+  const raw = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+  const owned = [...new Set([...DEFAULT_COSMETICS, ...uniqueArray(raw.owned).filter((id) => COSMETIC_BY_ID[id])])];
+  const equipped = { ...DEFAULT_EQUIPPED_COSMETICS };
+  for (const category of Object.keys(equipped)) {
+    const id = raw.equipped?.[category];
+    if (owned.includes(id) && COSMETIC_BY_ID[id]?.category === category) equipped[category] = id;
+  }
+  return { owned, equipped };
+}
+
+function sanitizeIntegrity(value) {
+  const raw = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+  return { imported: Boolean(raw.imported), devLabUsed: Boolean(raw.devLabUsed) };
 }
 
 function sanitizeCombo(defaults, value) {
@@ -166,6 +194,22 @@ function sanitizeBoo(defaults, value, savedAt, now) {
     boo.nextSpawnAt = now + remainingActiveDelay;
   }
   return boo;
+}
+
+function sanitizeShine(defaults, value, savedAt, now) {
+  const raw = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+  const rawNextSpawn = Number(raw.nextSpawnAt);
+  const visibleRemaining = Math.max(0, Math.min(60_000, finiteNumber(raw.visibleUntil, 0) - savedAt));
+  const remaining = Number.isFinite(rawNextSpawn)
+    ? Math.max(1_000, Math.min(16 * 60 * 1000, rawNextSpawn - savedAt))
+    : randomShineDelay();
+  return {
+    ...defaults,
+    nextSpawnAt: now + remaining,
+    visibleUntil: visibleRemaining ? now + visibleRemaining : 0,
+    spawnedAt: visibleRemaining ? now : 0,
+    kind: raw.kind === 'corrupted' ? 'corrupted' : 'normal',
+  };
 }
 
 function sanitizeCommittedSpin(value, now) {
