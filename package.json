@@ -1,0 +1,27 @@
+{
+  "name": "cappy-clicker",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "vite build",
+    "preview": "vite preview --host 127.0.0.1",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "assets:refresh": "node scripts/fetch-assets.mjs",
+    "assets:og": "node scripts/create-social-image.mjs",
+    "validate": "node scripts/validate-content.mjs",
+    "simulate": "node scripts/simulate-economy.mjs"
+  },
+  "dependencies": {
+    "break_infinity.js": "2.2.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.62.1",
+    "sharp": "0.35.4",
+    "vite": "8.2.2",
+    "vitest": "4.1.11"
+  }
+}
