@@ -1,0 +1,27 @@
+@keyframes cappy-float { 0%,100% { transform: translateY(0) rotate(-1deg); } 50% { transform: translateY(-13px) rotate(1.5deg); } }
+@keyframes cappy-toss { 0% { transform: scale(1); } 18% { transform: scale(1.08,.82) translateY(13px); } 46% { transform: translateY(-95px) rotate(150deg) scale(.88); } 72% { transform: translateY(-25px) rotate(330deg); } 100% { transform: translateY(0) rotate(360deg); } }
+@keyframes cappy-critical { 0% { transform: scale(1); } 16% { transform: scale(1.15,.72) translateY(15px); } 40% { transform: translateY(-130px) rotate(-190deg) scale(1.2); filter: drop-shadow(0 0 22px #fff) brightness(1.25); } 65% { transform: translateY(-20px) rotate(-420deg); } 82% { transform: scale(1.18,.82); } 100% { transform: scale(1) rotate(-540deg); } }
+@keyframes click-pop { 0% { opacity: 0; transform: translate(-50%,-20%) scale(.7); } 14% { opacity: 1; transform: translate(-50%,-55%) scale(1.08); } 100% { opacity: 0; transform: translate(-50%,-190%) scale(.92); } }
+@keyframes reel-spin { 0%, 100% { transform: translateY(0) rotate(0); filter: blur(0); } 28% { transform: translateY(-76px) rotate(-12deg); filter: blur(2px); } 72% { transform: translateY(76px) rotate(12deg); filter: blur(2px); } }
+@keyframes news-in { 0% { opacity: 0; transform: translateY(12px); } 100% { opacity: 1; transform: translateY(0); } }
+@keyframes backdrop-drift { 0% { transform: scale(1.02) translate3d(0,0,0); } 50% { transform: scale(1.06) translate3d(-.7%, -.4%, 0); } 100% { transform: scale(1.02) translate3d(0,0,0); } }
+@keyframes ship-bob { 0%,100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-6px) rotate(1deg); } }
+@keyframes curse-pulse { 0%,100% { box-shadow: inset 0 0 0 rgba(100,22,139,0); } 50% { box-shadow: inset 0 0 120px rgba(95,12,138,.28); } }
+
+.cappy-button { animation: cappy-float 3.2s ease-in-out infinite; }
+.cappy-button.is-tossing { animation: cappy-toss .62s cubic-bezier(.25,.8,.32,1); }
+.cappy-button.is-critical { animation: cappy-critical .83s cubic-bezier(.18,.8,.25,1); }
+.click-pop.is-active { animation: click-pop .85s ease-out forwards; }
+.news-ticker [data-news-text].is-changing { animation: news-in .4s ease both; }
+.kingdom-backdrop { animation: backdrop-drift 26s ease-in-out infinite; }
+.journey-odyssey { animation: ship-bob 3.5s ease-in-out infinite; }
+body.has-purple-curse::after { content: ""; position: fixed; z-index: 35; inset: 0; pointer-events: none; animation: curse-pulse 1.7s ease-in-out infinite; }
+
+body[data-performance="reduced"] .kingdom-backdrop, body[data-performance="reduced"] .journey-odyssey { animation-duration: 55s; }
+body[data-performance="potato"] .kingdom-backdrop, body[data-performance="potato"] .journey-odyssey, body[data-performance="potato"] .cappy-button { animation: none; }
+body[data-performance="potato"] .kingdom-backdrop::after { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
+}
+.force-reduced-motion *, .force-reduced-motion *::before, .force-reduced-motion *::after { scroll-behavior: auto !important; animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
