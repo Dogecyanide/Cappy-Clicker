@@ -84,7 +84,12 @@ const MULTI_NAMES = {
 
 function moonCost(number) {
   let cost = D('2.5e4');
-  for (let index = 2; index <= number; index += 1) cost = cost.mul(index % 10 === 0 ? 1e5 : 100);
+  for (let index = 2; index <= number; index += 1) {
+    if (index % 10 === 0) cost = cost.mul(index <= 20 ? 1e5 : index === 30 ? 100 : 5);
+    else if (index <= 20) cost = cost.mul(100);
+    else if (index <= 30) cost = cost.mul(25);
+    else cost = cost.mul(2);
+  }
   return cost.toString();
 }
 

@@ -12,6 +12,7 @@
 @keyframes shine-halo { 0%,100% { opacity: .62; transform: scale(.88); } 50% { opacity: 1; transform: scale(1.08); } }
 @keyframes gloom-halo { 0%,100% { opacity: .62; transform: scale(.9) skew(-2deg); } 50% { opacity: 1; transform: scale(1.1) skew(3deg); } }
 @keyframes shine-rays { to { transform: rotate(360deg); } }
+@keyframes receipt-punch { 0% { opacity: .35; transform: translateY(-5px) scale(.96) rotate(-1deg); } 70% { opacity: 1; transform: translateY(1px) scale(1.015) rotate(.25deg); } 100% { transform: none; } }
 
 .cappy-button { animation: cappy-float 3.2s ease-in-out infinite; }
 .cappy-button.is-tossing { animation: cappy-toss .62s cubic-bezier(.25,.8,.32,1); }

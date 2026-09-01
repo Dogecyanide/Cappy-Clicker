@@ -6,6 +6,9 @@ import { FUEL_MODULES, FUEL_MODULE_BY_ID } from '../data/fuel-modules.js';
 import { POWER_MOON_BY_ID, POWER_MOONS } from '../data/power-moons.js';
 
 const SHINE_FUEL_CAP = 100;
+const FUEL_STRENGTH_UPGRADES = BUILDING_UPGRADES.filter((upgrade) =>
+  upgrade.effects?.some(({ type }) => type === 'fuel-module-boost'),
+);
 const FUEL_TIERS = [
   { at: 0, name: 'Starter Fumes', note: 'The gauge is technically awake.' },
   { at: 8, name: 'Cascade Blend', note: 'Damp, energetic, and only a little geological.' },
@@ -30,7 +33,8 @@ export function getFuelProfile(state) {
   const moons = validMoonIds.length;
   const multiMoons = validMoonIds.filter((id) => POWER_MOON_BY_ID[id]?.isMulti).length;
   const routes = Math.min(PRODUCERS.length, new Set(state.discoveredProducers ?? []).size);
-  const upgrades = Math.min(BUILDING_UPGRADES.length, new Set(state.upgrades ?? []).size);
+  const purchasedUpgrades = new Set(state.upgrades ?? []);
+  const upgrades = Math.min(BUILDING_UPGRADES.length, purchasedUpgrades.size);
   const shines = Math.min(SHINE_FUEL_CAP, Math.max(0, Number(state.stats?.shinesClaimed ?? 0)));
   const components = [
     { id: 'badges', label: 'Passport stamps', icon: '★', amount: achievements, units: achievements, maxUnits: ACHIEVEMENTS.length },
@@ -46,23 +50,52 @@ export function getFuelProfile(state) {
   const tier = [...FUEL_TIERS].reverse().find(({ at }) => percent >= at) ?? FUEL_TIERS[0];
   const nextTier = FUEL_TIERS.find(({ at }) => at > percent) ?? null;
   const bonuses = {
+    ratio,
+    moduleStrength: 1,
     globalAdditive: 0,
     globalMultiplier: 1,
     flatClickMultiplier: 1,
+    clickAssist: 0,
+    criticalChance: 0,
     offlineHours: 0,
+    offlineProductionMultiplier: 1,
     priceDiscount: 0,
     fusionMultiplier: 1,
+    eventLuck: 0,
+    shineDuration: 0,
     shinePayout: 1,
+    gloomLossReduction: 0,
   };
   const installed = [];
   for (const id of state.fuelModules ?? []) {
     const module = FUEL_MODULE_BY_ID[id];
     if (!module) continue;
     installed.push(module);
-    for (const effect of module.effects) applyFuelEffect(bonuses, effect, ratio);
+  }
+  let moduleStrength = 1;
+  for (const upgrade of FUEL_STRENGTH_UPGRADES) {
+    if (!purchasedUpgrades.has(upgrade.id)) continue;
+    for (const effect of upgrade.effects) {
+      if (effect.type === 'fuel-module-boost') moduleStrength += Number(effect.amount ?? 0);
+    }
+  }
+  for (const module of installed) {
+    for (const effect of module.effects) {
+      if (effect.type === 'module-strength') moduleStrength += Number(effect.maxAmount ?? 0) * ratio;
+    }
+  }
+  bonuses.moduleStrength = Math.min(1.5, Math.max(1, moduleStrength));
+  for (const module of installed) {
+    for (const effect of module.effects) applyFuelEffect(bonuses, effect, ratio * bonuses.moduleStrength);
   }
   bonuses.priceDiscount = Math.min(0.05, bonuses.priceDiscount);
   bonuses.offlineHours = Math.min(4, bonuses.offlineHours);
+  bonuses.offlineProductionMultiplier = Math.min(1.5, bonuses.offlineProductionMultiplier);
+  bonuses.clickAssist = Math.min(0.002, bonuses.clickAssist);
+  bonuses.criticalChance = Math.min(0.006, bonuses.criticalChance);
+  bonuses.eventLuck = Math.min(0.08, bonuses.eventLuck);
+  bonuses.shineDuration = Math.min(8, bonuses.shineDuration);
+  bonuses.gloomLossReduction = Math.min(0.5, bonuses.gloomLossReduction);
   return { units, capacity: FUEL_CAPACITY, ratio, percent, tier, nextTier, components, bonuses, installed, achievementCount: achievements };
 }
 
@@ -71,10 +104,16 @@ function applyFuelEffect(bonuses, effect, ratio) {
   if (effect.type === 'global-additive') bonuses.globalAdditive += scaled;
   if (effect.type === 'global-multiplier') bonuses.globalMultiplier *= 1 + scaled;
   if (effect.type === 'flat-click-multiplier') bonuses.flatClickMultiplier *= 1 + scaled;
+  if (effect.type === 'click-assist-add') bonuses.clickAssist += scaled;
+  if (effect.type === 'critical-chance-add') bonuses.criticalChance += scaled;
   if (effect.type === 'offline-hours') bonuses.offlineHours += scaled;
+  if (effect.type === 'offline-production-multiplier') bonuses.offlineProductionMultiplier *= 1 + scaled;
   if (effect.type === 'price-discount') bonuses.priceDiscount += scaled;
   if (effect.type === 'fusion-multiplier') bonuses.fusionMultiplier *= 1 + scaled;
+  if (effect.type === 'event-luck-add') bonuses.eventLuck += scaled;
+  if (effect.type === 'shine-duration-add') bonuses.shineDuration += scaled;
   if (effect.type === 'shine-payout') bonuses.shinePayout *= 1 + scaled;
+  if (effect.type === 'gloom-loss-reduction') bonuses.gloomLossReduction += scaled;
 }
 
 export function getFuelModuleStatus(state, module, profile = getFuelProfile(state)) {

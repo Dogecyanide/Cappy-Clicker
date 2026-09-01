@@ -31,6 +31,16 @@ describe('canonical economy', () => {
     expect(getBulkCost(FROG, 0, 0).eq(0)).toBe(true);
   });
 
+  test('bulk logistics stay exact while growth softens at large ownership milestones', () => {
+    const acrossBoundary = Array.from({ length: 20 }, (_, index) => getProducerCost(FROG, 45 + index))
+      .reduce((total, cost) => total.add(cost), D(0));
+    const bulk = getBulkCost(FROG, 45, 20);
+    expect(bulk.lte(acrossBoundary)).toBe(true);
+    expect(acrossBoundary.sub(bulk).lt(20)).toBe(true);
+    expect(getProducerCost(FROG, 51).div(getProducerCost(FROG, 50)).toNumber()).toBeCloseTo(1.07, 3);
+    expect(getProducerCost(FROG, 1_001).div(getProducerCost(FROG, 1_000)).toNumber()).toBeCloseTo(PRODUCER_GROWTH, 3);
+  });
+
   test('Buy Max spends no more than the budget and cannot afford one more', () => {
     const state = createInitialState(1_000);
     state.coins = D(10_000);

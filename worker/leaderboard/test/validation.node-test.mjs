@@ -45,6 +45,16 @@ test('accepts the frontend submission contract', () => {
   assert.equal(submission.metadata.build, 'v2-grand-tour');
 });
 
+test('accepts all 480 published upgrades and rejects counts above the catalogue', () => {
+  const complete = validPayload();
+  complete.metadata.upgrades = 480;
+  assert.equal(validateSubmissionPayload(complete).metadata.upgrades, 480);
+
+  const impossible = validPayload();
+  impossible.metadata.upgrades = 481;
+  assert.throws(() => validateSubmissionPayload(impossible), /metadata\.upgrades is outside/);
+});
+
 test('rejects a score that disagrees with its display or metadata value', () => {
   const wrongLog = validPayload();
   wrongLog.scoreLog10 = 41;

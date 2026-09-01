@@ -9,7 +9,7 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
-    exclude: ['tests/e2e/**', 'node_modules/**', 'dist/**'],
+    exclude: ['tests/e2e/**', '**/node_modules/**', '.pnpm-store/**', 'dist/**', 'worker/**/dist-worker/**'],
     coverage: { reporter: ['text', 'html'] },
   },
 });

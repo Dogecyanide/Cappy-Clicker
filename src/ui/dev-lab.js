@@ -65,7 +65,7 @@ export function createDevLab(dialog, store, options = {}) {
     else if (action === 'shine-gloom') output.textContent = 'Gloom Shine spawned. Close the Lab and click the suspicious purple visitor.';
     else if (action === 'shine-force') output.textContent = formatShineResult(shineResult);
     else output.textContent = `${action} complete. Coins: ${format(store.state.coins)}`;
-    options.onChange?.(action);
+    options.onChange?.(action, { shineResult });
   });
 
   return { open: () => dialog.showModal() };

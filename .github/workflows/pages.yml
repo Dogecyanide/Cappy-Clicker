@@ -25,9 +25,35 @@ jobs:
       - run: npm install
       - run: npm run test
       - run: npm run validate
-      - name: Build
+      - name: Connect Open League endpoint
         env:
-          VITE_LEADERBOARD_API_URL: ${{ vars.VITE_LEADERBOARD_API_URL }}
+          LEADERBOARD_API_URL: ${{ vars.VITE_LEADERBOARD_API_URL }}
+        shell: bash
+        run: |
+          endpoint="${LEADERBOARD_API_URL%/}"
+          if [ -z "$endpoint" ]; then
+            echo "::warning title=Open League offline::Repository variable VITE_LEADERBOARD_API_URL is empty. Pages will deploy the game, but the shared board will stay offline."
+            exit 0
+          fi
+
+          if ! ENDPOINT="$endpoint" node -e 'const url = new URL(process.env.ENDPOINT); if (url.protocol !== "https:" || url.username || url.password || url.search || url.hash || (url.pathname !== "/" && url.pathname !== "")) process.exit(1)'; then
+            echo "::error title=Invalid Open League URL::VITE_LEADERBOARD_API_URL must be one HTTPS origin with no path or trailing slash."
+            exit 1
+          fi
+
+          health_file="$(mktemp)"
+          if ! curl --fail --silent --show-error --max-time 20 "$endpoint/health" > "$health_file"; then
+            echo "::error title=Open League unavailable::The configured Worker did not pass its health check. Deploy it, migrate D1, and set TOKEN_PEPPER before publishing Pages."
+            exit 1
+          fi
+          if ! node -e 'const fs = require("node:fs"); const value = JSON.parse(fs.readFileSync(process.argv[1], "utf8")); if (value.ok !== true || value.submissionsReady !== true) process.exit(1)' "$health_file"; then
+            echo "::error title=Open League not ready::The Worker answered, but score submissions are not ready."
+            exit 1
+          fi
+
+          echo "VITE_LEADERBOARD_API_URL=$endpoint" >> "$GITHUB_ENV"
+          echo "Open League connected to $endpoint"
+      - name: Build
         run: npm run build
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3

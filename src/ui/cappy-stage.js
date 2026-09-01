@@ -32,7 +32,8 @@ export function createCappyStage(element, store, options = {}) {
     button.classList.remove('is-tossing', 'is-critical');
     void button.offsetWidth;
     button.classList.add(result.critical ? 'is-critical' : 'is-tossing');
-    showFeedback(result, x, y);
+    if (result.critical) clearFeedback();
+    else showFeedback(result, x, y);
     options.audio?.click(result.critical);
     options.onClick?.(result);
   }
@@ -40,12 +41,16 @@ export function createCappyStage(element, store, options = {}) {
   function showFeedback(result, x, y) {
     const node = feedbackPool[feedbackCursor % feedbackPool.length];
     feedbackCursor += 1;
-    node.className = `click-pop ${result.critical ? 'click-pop--critical' : ''}`;
-    node.textContent = `${result.critical ? 'CRITICAL! +' : '+'}${format(result.amount)}`;
+    node.className = 'click-pop';
+    node.textContent = `+${format(result.amount)}`;
     node.style.left = `${x}px`;
     node.style.top = `${y}px`;
     void node.offsetWidth;
     node.classList.add('is-active');
+  }
+
+  function clearFeedback() {
+    for (const node of feedbackPool) node.className = 'click-pop';
   }
 
   button.addEventListener('click', click);

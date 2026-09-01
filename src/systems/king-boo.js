@@ -1,7 +1,8 @@
 import { D } from '../core/numbers.js';
-import { getEconomySnapshot, getMoonBonuses, strongestProducerId } from '../core/economy.js';
+import { getEconomySnapshot, getMoonBonuses, getUpgradeBonuses, strongestProducerId } from '../core/economy.js';
 import { randomBooDelay } from '../core/state.js';
 import { BOO_OUTCOMES, BOO_OUTCOME_BY_ID } from '../data/boo-outcomes.js';
+import { getFuelProfile } from './fuel.js';
 
 export function spawnBoo(state, now = Date.now()) {
   if (state.boo.visibleUntil > now || state.boo.committedSpin) return false;
@@ -11,7 +12,14 @@ export function spawnBoo(state, now = Date.now()) {
 }
 
 export function chooseBooOutcome(state, random = Math.random) {
-  const luck = Math.max(0, Math.min(0.2, getMoonBonuses(state).eventLuck));
+  const moonBonuses = getMoonBonuses(state);
+  const fuelBonuses = getFuelProfile(state).bonuses;
+  const upgradeBonuses = getUpgradeBonuses(state, moonBonuses, fuelBonuses);
+  const luck = Math.max(0, Math.min(0.2,
+    moonBonuses.eventLuck
+      + Number(fuelBonuses.eventLuck ?? 0)
+      + Number(upgradeBonuses.eventLuck ?? 0),
+  ));
   const weighted = BOO_OUTCOMES.map((outcome) => {
     const positive = outcome.tier === 'positive';
     const negative = outcome.tier.includes('negative') || outcome.tier === 'catastrophic';

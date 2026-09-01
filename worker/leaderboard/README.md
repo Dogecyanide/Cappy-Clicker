@@ -4,29 +4,45 @@ This package is the optional online backend for the game's friendly, self-report
 
 ## One-time Cloudflare setup
 
-1. From this directory, install dependencies with `npm install` and authenticate with `npx wrangler login`.
-2. Create the database:
+GitHub Pages hosts only the game files. It cannot store a shared score table, so a successful Pages deployment does **not** turn Open League on. The Worker and its D1 database must belong to the site owner's Cloudflare account.
+
+1. Open a terminal in this directory and run:
 
    ```text
-   npx wrangler d1 create cappy-clicker-leaderboard
+   npm install
+   npx wrangler login
    ```
 
-3. Copy the returned database ID into `wrangler.jsonc`, replacing the all-zero placeholder.
-4. Set a private hashing secret. Use a random value of at least 32 characters and never put it in `wrangler.jsonc`:
+   `wrangler login` opens Cloudflare in the owner's normal browser. No Cloudflare password belongs in this repository or in the game.
+
+2. Create and connect the database. The setup helper reuses a same-named D1 database if it already exists, so it is safe to retry, and writes its ID into `wrangler.jsonc` automatically:
 
    ```text
-   npx wrangler secret put TOKEN_PEPPER
+   npm run cloud:create
    ```
 
-5. Check `ALLOWED_ORIGINS` in `wrangler.jsonc`. Origins contain only scheme and host—no GitHub Pages repository path. The supplied values permit the project owner's GitHub Pages origin and the two usual local Vite origins.
-6. Create the remote tables and deploy:
+3. Create the tables and deploy the Worker:
 
    ```text
    npm run db:migrate:remote
    npm run deploy
    ```
 
-7. In the GitHub repository, open **Settings → Secrets and variables → Actions → Variables**, create a repository variable named exactly `VITE_LEADERBOARD_API_URL`, and set it to the deployed Worker URL without a trailing `/`. The Pages workflow passes that variable into the Vite build automatically. The URL is public configuration, so it should be a repository variable rather than a secret.
+4. Give the deployed Worker a private, cryptographically random hashing secret:
+
+   ```text
+   npm run secret:generate
+   ```
+
+   The generator pipes the value straight to Cloudflare. It does not save the secret in a file or expose it to browser players.
+
+5. Open the Worker URL printed by `npm run deploy` and add `/health`. Continue only when it returns `{"ok":true,...,"submissionsReady":true}`.
+
+6. In GitHub, open **Settings → Secrets and variables → Actions → Variables**, create a repository variable named exactly `VITE_LEADERBOARD_API_URL`, and paste the Worker URL without `/health` and without a trailing `/`. This URL is public configuration, so use a **Variable**, not a Secret.
+
+7. Open GitHub's **Actions** tab, choose **Deploy Cappy Clicker to Pages**, select **Run workflow**, and wait for the green check. The workflow checks `/health` before it embeds the URL, so an incomplete Worker setup cannot masquerade as an online board.
+
+`ALLOWED_ORIGINS` already permits `https://dogecyanide.github.io` and the usual local Vite addresses. An origin contains only the scheme and host; the `/Cappy-Clicker/` repository path must not be added.
 
 ## Local development
 
@@ -41,7 +57,7 @@ Point the game at the local Worker with `VITE_LEADERBOARD_API_URL=http://127.0.0
 
 ## API
 
-- `GET /health` checks the D1 binding.
+- `GET /health` checks the D1 tables and the private submission secret.
 - `GET /leaderboard?metric=lifetime` returns the top lifetime-coin scores.
 - `GET /leaderboard?metric=cps` returns the top CPS scores.
 - `GET /leaderboard?metric=all` returns both boards in one response.
@@ -55,5 +71,5 @@ The board is deliberately labeled self-reported. Validation catches malformed or
 
 - Public GET responses are briefly cacheable; POST and health responses are not.
 - Defaults allow one submission per player per minute, 50 per player per day, and 12 per network per ten minutes. All can be changed in `wrangler.jsonc`.
-- Content-count ceilings match the Grand Tour build: 40 producers, 460 upgrades, 700 achievements, and 50 Moons. Raise the corresponding variables when future releases add content.
+- Content-count ceilings match the Grand Tour build: 40 producers, 480 upgrades, 700 achievements, and 50 Moons. Raise the corresponding variables when future releases add content.
 - Apply every new migration before deploying code that depends on it.

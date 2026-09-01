@@ -8,16 +8,21 @@ const REEL_SYMBOL_COUNT = 29;
 
 export function createKingBooWidget(element, store, options = {}) {
   let renderedSpinId = '';
+  let renderedView = 'hidden';
   const base = import.meta.env.BASE_URL;
 
   element.addEventListener('click', (event) => {
-    if (event.target.closest('[data-spin-boo]')) {
+    const spinButton = event.target.closest('[data-spin-boo]');
+    if (spinButton && !spinButton.disabled) {
+      spinButton.disabled = true;
       let spin;
       store.mutate('boo-commit', (state) => { spin = commitBooSpin(state); });
       if (spin) {
         renderedSpinId = '';
         options.onCommit?.(spin);
         options.audio?.boo(false);
+      } else if (spinButton.isConnected) {
+        spinButton.disabled = false;
       }
     }
     if (event.target.closest('[data-dismiss-boo-result]')) {
@@ -37,14 +42,27 @@ export function createKingBooWidget(element, store, options = {}) {
     const visible = state.boo.visibleUntil > now || Boolean(spin);
     element.classList.toggle('is-visible', visible);
     element.setAttribute('aria-hidden', String(!visible));
-    if (!visible) return;
-
-    if (!spin) {
-      const remaining = Math.max(0, (state.boo.visibleUntil - now) / 1000);
-      element.innerHTML = `<div class="boo-invite"><img src="${base}assets/boo/king-boo.webp" alt="King Boo"><div><span class="eyebrow">Unlicensed casino sighting</span><h2>King Boo's Bonus</h2><p>Risk it, or ignore him with no penalty.</p><button type="button" data-spin-boo>Spin the machine</button><div class="boo-countdown"><span style="width:${remaining * 10}%"></span></div><small>Leaves in ${remaining.toFixed(1)}s</small></div></div>`;
+    if (!visible) {
+      renderedView = 'hidden';
+      renderedSpinId = '';
       return;
     }
 
+    if (!spin) {
+      const remaining = Math.max(0, (state.boo.visibleUntil - now) / 1000);
+      if (renderedView !== 'invite') {
+        renderedView = 'invite';
+        renderedSpinId = '';
+        element.innerHTML = `<div class="boo-invite"><img src="${base}assets/boo/king-boo.webp" alt="King Boo"><div><span class="eyebrow">Unlicensed casino sighting</span><h2>King Boo's Bonus</h2><p>Risk it, or ignore him with no penalty.</p><button type="button" data-spin-boo>Spin the machine</button><div class="boo-countdown"><span></span></div><small data-boo-time></small></div></div>`;
+      }
+      const countdown = element.querySelector('.boo-countdown span');
+      if (countdown) countdown.style.width = `${Math.min(100, remaining * 10)}%`;
+      const time = element.querySelector('[data-boo-time]');
+      if (time) time.textContent = `Leaves in ${remaining.toFixed(1)}s`;
+      return;
+    }
+
+    renderedView = 'spin';
     const outcome = BOO_OUTCOME_BY_ID[spin.outcomeId];
     const spinKey = `${spin.committedAt}:${spin.applied}`;
     if (spinKey !== renderedSpinId) {

@@ -20,6 +20,7 @@ import { createRightRail } from './right-rail.js';
 import { createKingBooWidget } from './king-boo-widget.js';
 import { createShineWidget } from './shine-widget.js';
 import { createNotifications } from './notifications.js';
+import { createFlightDeck } from './flight-deck.js';
 import { createKingdomBackground } from '../visuals/background.js';
 
 export function createGame(root, dependencies = {}) {
@@ -96,6 +97,12 @@ export function createGame(root, dependencies = {}) {
     onLeaderboardSubmit: () => notifications.show('Your latest score is on the friendly Open League board.', { title: 'Score submitted', icon: '🏁', tone: 'success' }),
     onError: showError,
   });
+  const flightDeck = createFlightDeck(root.querySelector('[data-flight-deck]'), store, {
+    onOpenFuel: () => {
+      rightRail.setTab('fuel');
+      root.querySelector('[data-right-rail]')?.scrollIntoView({ block: 'nearest', behavior: store.state.settings.reducedMotion ? 'auto' : 'smooth' });
+    },
+  });
   const booWidget = createKingBooWidget(root.querySelector('[data-boo-widget]'), store, {
     audio: audioProxy(),
     onCommit: () => persist('boo-commit'),
@@ -104,6 +111,7 @@ export function createGame(root, dependencies = {}) {
     audio: audioProxy(),
     onClaim: (result) => {
       reactiveNews(store.state, 'shine', { name: result.outcome.title });
+      flightDeck.showShineReceipt(result);
       const coinLine = result.amount !== '0' ? ` You caught ${format(result.amount)} coins.` : result.loss !== '0' ? ` It stole ${format(result.loss)} coins.` : '';
       notifications.show(`${result.outcome.description}${coinLine}`, {
         title: result.kind === 'corrupted' ? `Gloom: ${result.outcome.title}` : result.outcome.title,
@@ -121,8 +129,9 @@ export function createGame(root, dependencies = {}) {
   function loadDevLab() {
     if (!devLabPromise) {
       devLabPromise = import('./dev-lab.js').then(({ createDevLab }) => createDevLab(devDialog, store, {
-        onChange: (action) => {
+        onChange: (action, detail = {}) => {
           if (!['breakdown', 'dump', 'hard-reset'].includes(action)) store.state.integrity.devLabUsed = true;
+          if (detail.shineResult?.ok) flightDeck.showShineReceipt(detail.shineResult);
           unlockNow(); persist('dev'); rightRail.renderAll(true); buildingShop.renderStructure(true);
         },
         onHardReset: () => hardReset(true),
@@ -220,6 +229,7 @@ export function createGame(root, dependencies = {}) {
     rightRail.update(state);
     booWidget.update(state);
     shineWidget.update(state);
+    flightDeck.update(state, snapshot.fuelProfile);
     background.update(state);
     applySettings(state);
     if (reason !== 'tick') updateSaveDeskSummary();
@@ -432,6 +442,7 @@ function appTemplate(base) {
     </header>
     <section class="news-ticker" aria-label="Kingdom news"><span class="news-ticker__label">KINGDOM NEWS</span><div><span data-news-text>Loading the latest nonsense…</span></div></section>
     <main class="game-layout">
+      <div class="cappy-column">
       <section class="cappy-stage panel-paper" data-cappy-stage aria-labelledby="cappy-title">
         <div class="postcard-pin postcard-pin--left"></div><div class="postcard-pin postcard-pin--right"></div>
         <header><span class="eyebrow">Cap Kingdom departure gate</span><h1 id="cappy-title">Toss Cappy.<br><em>Fund the voyage.</em></h1><p>Every throw rattles loose a few more Kingdom Coins.</p></header>
@@ -443,6 +454,20 @@ function appTemplate(base) {
         <div class="click-stats"><div><span data-click-value>1 coin / toss</span><small>effective click value</small></div><div><span data-combo>Build a toss combo</span><small>keep throwing</small></div></div>
         <div class="stage-ticket"><span>Tip</span><p>Press <kbd>Space</kbd> anywhere outside a text box, or focus Cappy and press Enter.</p></div>
       </section>
+      <section class="flight-deck panel-paper" data-flight-deck aria-label="Odyssey Fuel and Shine readout">
+        <header class="flight-deck__header"><div><span class="eyebrow">Odyssey engine room</span><h2>Fuel depth</h2></div><button type="button" data-open-fuel-tab>Open workshop</button></header>
+        <div class="flight-deck__readout">
+          <div class="fuel-dipstick" data-fuel-depth role="progressbar" aria-label="Odyssey Fuel depth" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+            <div class="fuel-dipstick__well"><span data-fuel-depth-liquid><i></i></span></div>
+            <div class="fuel-dipstick__marks" aria-hidden="true"><span>FULL</span><span>¾</span><span>½</span><span>¼</span><span>EMPTY</span></div>
+          </div>
+          <div class="flight-deck__numbers"><strong data-fuel-percent>0.0%</strong><span data-fuel-grade>Starter Fumes</span><small data-fuel-units>0 / 0 units</small><small data-fuel-next>The gauge is waking up</small></div>
+        </div>
+        <article class="shine-receipt" data-shine-receipt data-tone="idle" aria-live="polite">
+          <span class="shine-receipt__icon" data-shine-receipt-icon>?</span><div><span class="eyebrow" data-shine-receipt-kicker>Rare catch readout</span><h3 data-shine-receipt-title>No Shine caught yet</h3><strong data-shine-receipt-reward>Normal Shines reward · Gloom Shines carry risk</strong><p data-shine-receipt-description>Catch one and its exact payout, penalty, or timed effect will stay here.</p></div>
+        </article>
+      </section>
+      </div>
       <section class="producer-shop" aria-labelledby="shop-title"><header class="shop-heading"><div><span class="eyebrow">Crazy Cap travel desk</span><h2 id="shop-title">Kingdom Producers</h2><p>Only destinations you have discovered appear here. Every number is the actual effective rate.</p></div><span class="shop-sticker">BUY<br>SMART-ISH</span></header><div class="producer-list" data-producer-list></div></section>
       <aside class="right-rail" data-right-rail><nav class="rail-tabs" role="tablist" aria-label="Collections"><button type="button" role="tab" data-tab="upgrades">Upgrades</button><button type="button" role="tab" data-tab="moons">Moons</button><button type="button" role="tab" data-tab="achievements">Badges</button><button type="button" role="tab" data-tab="fuel">Fuel</button><button type="button" role="tab" data-tab="style">Style</button><button type="button" role="tab" data-tab="voyage">Voyage</button><button type="button" role="tab" data-tab="ranks">Ranks</button></nav><div class="rail-panel" data-panel="upgrades"></div><div class="rail-panel" data-panel="moons" hidden></div><div class="rail-panel" data-panel="achievements" hidden></div><div class="rail-panel" data-panel="fuel" hidden></div><div class="rail-panel" data-panel="style" hidden></div><div class="rail-panel" data-panel="voyage" hidden></div><div class="rail-panel" data-panel="ranks" hidden></div></aside>
     </main>
@@ -460,7 +485,7 @@ function appTemplate(base) {
 }
 
 function settingsDialog() {
-  return `<form method="dialog" class="dialog-card settings-dialog"><header><div><span class="eyebrow">Cabin controls</span><h2>Settings</h2></div><button value="close" aria-label="Close">×</button></header><fieldset><legend>Performance</legend><label><input type="radio" name="performance" value="full"> <span><b>Full</b><small>All backgrounds, particles, and travel-brochure fuss.</small></span></label><label><input type="radio" name="performance" value="reduced"> <span><b>Reduced</b><small>Fewer particles and quieter background movement.</small></span></label><label><input type="radio" name="performance" value="potato"> <span><b>Potato</b><small>Minimal decoration; every game mechanic stays intact.</small></span></label></fieldset><fieldset><legend>Comfort</legend><label><input type="checkbox" name="sound"> <span><b>Synthesized sound effects</b><small>No music or streamed audio.</small></span></label><label><input type="checkbox" name="reducedMotion"> <span><b>Reduce motion</b><small>Also respects your device preference.</small></span></label></fieldset><footer><button value="close">Done</button></footer></form>`;
+  return `<form method="dialog" class="dialog-card settings-dialog"><header><div><span class="eyebrow">Cabin controls</span><h2>Settings</h2></div><button value="close" aria-label="Close">×</button></header><fieldset><legend>Performance</legend><label><input type="radio" name="performance" value="full"> <span><b>Full</b><small>All backgrounds, particles, and travel-brochure fuss.</small></span></label><label><input type="radio" name="performance" value="reduced"> <span><b>Reduced</b><small>Fewer particles and quieter background movement.</small></span></label><label><input type="radio" name="performance" value="potato"> <span><b>Potato</b><small>Minimal decoration; every game mechanic stays intact.</small></span></label></fieldset><fieldset><legend>Comfort</legend><label><input type="checkbox" name="sound"> <span><b>Sound effects</b><small>Includes the supplied Power Moon and Multi Moon fanfare clips; no music or streamed audio.</small></span></label><label><input type="checkbox" name="reducedMotion"> <span><b>Reduce motion</b><small>Also respects your device preference.</small></span></label></fieldset><footer><button value="close">Done</button></footer></form>`;
 }
 
 function saveDialog() {

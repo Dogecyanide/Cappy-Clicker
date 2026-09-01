@@ -6,13 +6,16 @@
   "scripts": {
     "dev": "wrangler dev",
     "check": "node --check src/index.js && node --check src/validation.js",
-    "test": "node --test test/validation.node-test.mjs",
+    "test": "node --test test/*.node-test.mjs",
+    "cloud:create": "node scripts/create-cloud-database.mjs",
+    "secret:generate": "node scripts/generate-secret.mjs | wrangler secret put TOKEN_PEPPER",
+    "verify:config": "node scripts/verify-config.mjs",
     "db:migrate:local": "wrangler d1 migrations apply DB --local",
-    "db:migrate:remote": "wrangler d1 migrations apply DB --remote",
+    "db:migrate:remote": "node scripts/verify-config.mjs && wrangler d1 migrations apply DB --remote",
     "deploy:dry": "wrangler deploy --dry-run --outdir dist-worker",
-    "deploy": "wrangler deploy"
+    "deploy": "node scripts/verify-config.mjs && wrangler deploy"
   },
   "devDependencies": {
-    "wrangler": "^4.0.0"
+    "wrangler": "4.127.1"
   }
 }

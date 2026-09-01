@@ -1,5 +1,19 @@
 export const PRODUCER_GROWTH = 1.15;
 
+// Early fleets keep the familiar 15% clicker curve. Large operations earn
+// increasingly efficient bulk logistics so the 350–1,000 ownership game is a
+// long-term climb rather than an exponential dead end.
+export const PRODUCER_GROWTH_SEGMENTS = [
+  { until: 50, growth: PRODUCER_GROWTH },
+  { until: 100, growth: 1.07 },
+  { until: 200, growth: 1.03 },
+  { until: 350, growth: 1.01 },
+  { until: 500, growth: 1.006 },
+  { until: 750, growth: 1.003 },
+  { until: 1_000, growth: 1.0015 },
+  { until: Number.POSITIVE_INFINITY, growth: PRODUCER_GROWTH },
+];
+
 // The route deliberately interleaves Mario series. Existing ids stay stable so
 // older CAPPY2 saves keep every producer they already owned.
 export const PRODUCERS = [

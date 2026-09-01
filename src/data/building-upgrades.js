@@ -1,5 +1,5 @@
 import { D, Decimal } from '../core/numbers.js';
-import { PRODUCERS } from './buildings.js';
+import { PRODUCERS, PRODUCER_GROWTH_SEGMENTS } from './buildings.js';
 
 export const MILESTONES = [5, 15, 25, 50, 100, 150, 200, 350, 500, 750, 1000];
 
@@ -660,6 +660,18 @@ function producerEffectLabel(producer, producerIndex, milestone) {
   return `${producer.name} production ×${({ 5: 2, 25: 2, 100: 3, 200: 3, 350: 4, 750: 5 })[milestone]}`;
 }
 
+function producerUpgradeGrowthFactor(milestone) {
+  let cursor = 0;
+  let factor = D(1);
+  for (const segment of PRODUCER_GROWTH_SEGMENTS) {
+    if (milestone <= cursor) break;
+    const length = Math.min(milestone, segment.until) - cursor;
+    if (length > 0) factor = factor.mul(Decimal.pow(segment.growth, length));
+    cursor += length;
+  }
+  return factor;
+}
+
 export const PRODUCER_UPGRADES = PRODUCERS.flatMap((producer, producerIndex) =>
   MILESTONES.map((milestone, index) => {
     const copy = copyFor(producer, index);
@@ -675,7 +687,7 @@ export const PRODUCER_UPGRADES = PRODUCERS.flatMap((producer, producerIndex) =>
       flavour: copy[1],
       motif: copy[2],
       cost: D(producer.baseCost)
-        .mul(Decimal.pow(1.15, milestone))
+        .mul(producerUpgradeGrowthFactor(milestone))
         .mul(6 + milestone * 1.8)
         .ceil()
         .toString(),
@@ -704,6 +716,30 @@ const TECHNIQUE_COPY = [
   ['Critic’s Moon Pin', 'The pin attracts praise, lightning, and another half-percent of criticals.', '☾', '1e52', { type: 'critical-chance-add', amount: 0.005 }],
   ['Five-Star Impact', 'Critical throws hit half a step harder without changing their silent dignity.', '★', '1e55', { type: 'critical-multiplier-add', amount: 0.5 }],
   ['Celestial Finder’s Fee', 'Rare Shine rewards pay a little extra for being spotted the old-fashioned way.', '✺', '1e58', { type: 'shine-payout', multiplier: 1.25 }],
+  ['Fuel-Sample Siphon', 'A glass straw steals one promising bubble from every tank layer and sends it back through the engine.', '⚗', '1e60', { type: 'fuel-module-boost', amount: 0.08 }],
+  ['Reserve-Tank Ricochet', 'Cappy skims the fuel gauge on his return and brings a trace of the whole voyage with him.', '↝', '1e61', { type: 'fuel-scaled-click-assist', maxAmount: 0.001 }],
+  ['Night-Shift Thermos', 'Yesterday’s engine warmth stays fresh until the crew clocks back in.', '☕', '1e62', { type: 'offline-hours-add', hours: 1 }],
+  ['Gloom Deductible', 'A cheerful actuary proves suspicious sunlight can be insured if nobody reads the exclusions.', '☂', '1e63', { type: 'gloom-loss-reduction', amount: 0.2 }],
+  ['Customs Bulk Permit', 'One heroic stamp moves the entire producer catalogue through the cheaper queue.', '▤', '1e64', { type: 'global-price-discount', amount: 0.01 }],
+  ['Poltergust House Edge', 'Luigi vacuums a few cruel possibilities from King Boo’s wheel and labels the bag very carefully.', '◌', '1e65', { type: 'event-luck-add', amount: 0.02 }],
+  ['Sunlight Invoice Printer', 'Every captured ray leaves with an itemised receipt and a slightly larger reimbursement.', '▧', '1e66', { type: 'shine-payout', multiplier: 1.15 }],
+  ['Self-Winding Dipstick', 'The measuring rod points uphill, hums confidently, and turns its reading into useful pressure.', '⚚', '1e67', { type: 'fuel-scaled-global-additive', maxAmount: 0.06 }],
+  ['Return-Flight Flywheel', 'Momentum waits beside the desk until Cappy comes back to collect it.', '⟳', '1e68', { type: 'click-assist-add', amount: 0.0005 }],
+  ['Catalytic Camp Bed', 'The night crew sleeps beside the exhaust so no unattended second goes entirely to waste.', '▰', '1e69', { type: 'offline-production-multiplier', multiplier: 1.15 }],
+  ['Pressure-Stitched Brim', 'Each seam tightens with the tank needle, giving an ordinary toss a distinctly interstellar snap.', '⌒', '1e70', { type: 'fuel-scaled-flat-click-multiplier', maxAmount: 0.25 }],
+  ['Perfect Review Bell', 'A single chime informs physics that the next impact deserves another half-star.', '♯', '1e70', { type: 'critical-multiplier-add', amount: 0.5 }],
+  ['Heat-Sink Metronome', 'The beat survives re-entry and grants one last sliver of patience to a combo.', '♬', '1e71', { type: 'combo-window-add', milliseconds: 100 }],
+  ['Eclipse Sunglasses', 'Tinted lenses reveal the tiny clause where corrupted suns admit they are mostly bluffing.', '▣', '1e71', { type: 'gloom-loss-reduction', amount: 0.15 }],
+  ['Plumber Union Dividend', 'Every kingdom contributes one red coin to a fund with suspiciously excellent quarterly output.', 'Ⓜ', '1e72', { type: 'global-additive', amount: 0.08 }],
+  ['Condensate Loyalty Card', 'The tenth celestial refill earns a free punch, although nobody remembers punching the first nine.', '◫', '1e72', { type: 'fuel-module-boost', amount: 0.12 }],
+  ['Sleeper-Car Schedule', 'The Odyssey follows the dark side of each time zone and never quite arrives after closing.', '▱', '1e73', { type: 'offline-production-multiplier', multiplier: 1.15 }],
+  ['Solar Customs Appeal', 'Rare visitors receive five additional seconds to challenge the original departure ruling.', '◉', '1e73', { type: 'shine-duration-add', seconds: 5 }],
+  ['Odds-and-Ends Filter', 'The engine catches loose probability before King Boo can hide it under the table.', '⌬', '1e74', { type: 'event-luck-add', amount: 0.03 }],
+  ['Captain’s Master Gauge', 'Three needles agree at last: cheaper routes, gentler eclipses, and louder machinery all point forward.', '✥', '1e75', [
+    { type: 'fuel-module-boost', amount: 0.1 },
+    { type: 'global-price-discount', amount: 0.01 },
+    { type: 'gloom-loss-reduction', amount: 0.1 },
+  ]],
 ];
 
 export const TECHNIQUE_UPGRADES = TECHNIQUE_COPY.map(([name, flavour, motif, unlockAt, effect], index) => ({
@@ -713,8 +749,8 @@ export const TECHNIQUE_UPGRADES = TECHNIQUE_COPY.map(([name, flavour, motif, unl
   milestone: null,
   previousId: index ? `cappy-technique-${index}` : null,
   unlockAt,
-  effects: [effect],
-  effectLabel: techniqueEffectLabel(effect),
+  effects: Array.isArray(effect) ? effect : [effect],
+  effectLabel: (Array.isArray(effect) ? effect : [effect]).map(techniqueEffectLabel).join(' · '),
   name,
   flavour,
   motif,
@@ -724,11 +760,22 @@ export const TECHNIQUE_UPGRADES = TECHNIQUE_COPY.map(([name, flavour, motif, unl
 function techniqueEffectLabel(effect) {
   if (effect.type === 'flat-click-multiplier') return `Flat Cappy value ×${effect.multiplier}`;
   if (effect.type === 'click-assist-add') return `Cappy production assist +${effect.amount * 100}%`;
+  if (effect.type === 'fuel-scaled-click-assist') return `Full tank adds ${effect.maxAmount * 100}% more production assist`;
+  if (effect.type === 'fuel-scaled-flat-click-multiplier') return `Tank fill adds up to ${effect.maxAmount * 100}% flat toss power`;
   if (effect.type === 'critical-chance-add') return `Critical chance +${effect.amount * 100}%`;
   if (effect.type === 'critical-multiplier-add') return `Critical power +${effect.amount}×`;
   if (effect.type === 'combo-window-add') return `Combo window +${effect.milliseconds}ms`;
   if (effect.type === 'shine-duration-add') return `Rare Shines linger +${effect.seconds}s`;
-  return `Rare Shine payouts ×${effect.multiplier}`;
+  if (effect.type === 'shine-payout') return `Rare Shine payouts ×${effect.multiplier}`;
+  if (effect.type === 'fuel-module-boost') return `Installed Fuel modules +${effect.amount * 100}% strength`;
+  if (effect.type === 'fuel-scaled-global-additive') return `Tank fill adds up to +${effect.maxAmount * 100}% global production`;
+  if (effect.type === 'offline-hours-add') return `Offline cap +${effect.hours} hour`;
+  if (effect.type === 'offline-production-multiplier') return `Offline production ×${effect.multiplier}`;
+  if (effect.type === 'gloom-loss-reduction') return `Gloom Shine coin losses −${effect.amount * 100}%`;
+  if (effect.type === 'global-price-discount') return `All producer prices −${effect.amount * 100}%`;
+  if (effect.type === 'event-luck-add') return `King Boo odds lean ${effect.amount * 100}% kinder`;
+  if (effect.type === 'global-additive') return `Global production +${effect.amount * 100}%`;
+  return 'Special voyage technique';
 }
 
 export const BUILDING_UPGRADES = [...PRODUCER_UPGRADES, ...TECHNIQUE_UPGRADES];

@@ -9,7 +9,9 @@ import { PRODUCERS } from '../src/data/buildings.js';
 import { FUEL_MODULES } from '../src/data/fuel-modules.js';
 import { POWER_MOONS } from '../src/data/power-moons.js';
 import { getFuelProfile, purchaseFuelModule } from '../src/systems/fuel.js';
-import { getOfflineCapHours } from '../src/systems/offline.js';
+import { chooseBooOutcome } from '../src/systems/king-boo.js';
+import { getOfflineCapHours, getOfflineProductionMultiplier } from '../src/systems/offline.js';
+import { forceShineOutcome } from '../src/systems/shines.js';
 
 function finishCollections(state) {
   state.achievements = Object.fromEntries(ACHIEVEMENTS.map(({ id }) => [id, { unlockedAt: 1 }]));
@@ -59,5 +61,55 @@ describe('Odyssey Fuel', () => {
     expect(powered.gt(baseline)).toBe(true);
     expect(getPriceMultiplier(state, 'frog-capture')).toBeLessThan(1);
     expect(getOfflineCapHours(state)).toBeGreaterThan(8);
+  });
+
+  test('the expanded engine room powers distinct Cappy, event, and away-time systems', () => {
+    const state = createInitialState();
+    finishCollections(state);
+    state.fuelModules = FUEL_MODULES.map(({ id }) => id);
+    const profile = getFuelProfile(state);
+
+    expect(FUEL_MODULES).toHaveLength(18);
+    expect(profile.bonuses.moduleStrength).toBeCloseTo(1.42);
+    expect(profile.bonuses.clickAssist).toBeGreaterThan(0);
+    expect(profile.bonuses.criticalChance).toBeGreaterThan(0);
+    expect(profile.bonuses.offlineProductionMultiplier).toBeGreaterThan(1);
+    expect(profile.bonuses.eventLuck).toBeGreaterThan(0);
+    expect(profile.bonuses.shineDuration).toBeGreaterThan(0);
+    expect(profile.bonuses.gloomLossReduction).toBeGreaterThan(0);
+  });
+
+  test('non-building workshop upgrades affect prices, nights, events, and Gloom losses', () => {
+    const state = createInitialState();
+    state.producers['frog-capture'] = 1;
+    state.upgrades = [
+      'cappy-technique-23',
+      'cappy-technique-24',
+      'cappy-technique-25',
+      'cappy-technique-26',
+      'cappy-technique-30',
+    ];
+
+    const snapshot = getEconomySnapshot(state);
+    expect(snapshot.upgradeBonuses.offlineHours).toBe(1);
+    expect(snapshot.upgradeBonuses.eventLuck).toBeCloseTo(0.02);
+    expect(snapshot.upgradeBonuses.gloomLossReduction).toBeCloseTo(0.2);
+    expect(getPriceMultiplier(state, 'frog-capture')).toBeCloseTo(0.99);
+    expect(getOfflineCapHours(state)).toBe(9);
+    expect(getOfflineProductionMultiplier(state)).toBeCloseTo(1.15);
+
+    state.coins = D(1_000);
+    const gloom = forceShineOutcome(state, 'gloom-toll', { now: 2_000 });
+    expect(gloom).toMatchObject({ ok: true, loss: '24', prevented: '6' });
+    expect(state.coins.eq(976)).toBe(true);
+  });
+
+  test('event workshop parts make a borderline King Boo roll kinder', () => {
+    const plain = createInitialState();
+    expect(chooseBooOutcome(plain, () => 0.5).tier).toBe('neutral');
+
+    const tuned = createInitialState();
+    tuned.upgrades = ['cappy-technique-26', 'cappy-technique-39'];
+    expect(chooseBooOutcome(tuned, () => 0.5).tier).toBe('positive');
   });
 });

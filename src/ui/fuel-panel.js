@@ -47,11 +47,18 @@ function describeFuelOutput(bonuses) {
   const items = [];
   if (bonuses.globalAdditive > 0) items.push({ icon: '↟', label: `+${percent(bonuses.globalAdditive)} global production` });
   if (bonuses.globalMultiplier > 1) items.push({ icon: '×', label: `×${bonuses.globalMultiplier.toFixed(2)} global production` });
+  if (bonuses.moduleStrength > 1) items.push({ icon: '⚙', label: `+${percent(bonuses.moduleStrength - 1)} strength for installed Fuel modules` });
   if (bonuses.priceDiscount > 0) items.push({ icon: '−', label: `${percent(bonuses.priceDiscount)} lower producer prices` });
   if (bonuses.flatClickMultiplier > 1) items.push({ icon: '↻', label: `×${bonuses.flatClickMultiplier.toFixed(2)} flat toss value` });
+  if (bonuses.clickAssist > 0) items.push({ icon: '➤', label: `+${percent(bonuses.clickAssist)} of production added to each toss` });
+  if (bonuses.criticalChance > 0) items.push({ icon: '✦', label: `+${percent(bonuses.criticalChance)} critical chance` });
   if (bonuses.offlineHours > 0) items.push({ icon: '☾', label: `+${bonuses.offlineHours.toFixed(1)} offline hours` });
+  if (bonuses.offlineProductionMultiplier > 1) items.push({ icon: '◐', label: `×${bonuses.offlineProductionMultiplier.toFixed(2)} offline production` });
   if (bonuses.fusionMultiplier > 1) items.push({ icon: '⧉', label: `×${bonuses.fusionMultiplier.toFixed(2)} fusion strength` });
+  if (bonuses.eventLuck > 0) items.push({ icon: '♛', label: `${percent(bonuses.eventLuck)} kinder King Boo odds` });
+  if (bonuses.shineDuration > 0) items.push({ icon: '⌛', label: `+${bonuses.shineDuration.toFixed(1)}s Shine visibility` });
   if (bonuses.shinePayout > 1) items.push({ icon: '☀', label: `×${bonuses.shinePayout.toFixed(2)} Shine payouts` });
+  if (bonuses.gloomLossReduction > 0) items.push({ icon: '◉', label: `${percent(bonuses.gloomLossReduction)} less Gloom coin loss` });
   return items;
 }
 

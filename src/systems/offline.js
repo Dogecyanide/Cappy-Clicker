@@ -1,5 +1,5 @@
 import { D } from '../core/numbers.js';
-import { getEconomySnapshot, getMoonBonuses } from '../core/economy.js';
+import { getEconomySnapshot, getMoonBonuses, getUpgradeBonuses } from '../core/economy.js';
 import { getFuelProfile } from './fuel.js';
 
 export function calculateOfflineEarnings(state, now = Date.now()) {
@@ -24,7 +24,8 @@ export function calculateEarningsBetween(state, startedAt, now = Date.now()) {
       // Sample just inside the interval so an effect expiring at the boundary
       // applies to the preceding segment, not the following one.
       const sampleAt = Math.min(boundary - 1, cursor + 1);
-      earned = earned.add(getEconomySnapshot(state, { now: sampleAt }).totalCps.mul(segmentSeconds));
+      const snapshot = getEconomySnapshot(state, { now: sampleAt });
+      earned = earned.add(snapshot.totalCps.mul(segmentSeconds).mul(offlineProductionMultiplier(snapshot)));
     }
     cursor = boundary;
   }
@@ -33,7 +34,14 @@ export function calculateEarningsBetween(state, startedAt, now = Date.now()) {
 }
 
 export function getOfflineCapHours(state) {
-  return Math.min(24, Math.max(0, getMoonBonuses(state).offlineHours + getFuelProfile(state).bonuses.offlineHours));
+  const moonBonuses = getMoonBonuses(state);
+  const fuelBonuses = getFuelProfile(state).bonuses;
+  const upgradeBonuses = getUpgradeBonuses(state, moonBonuses, fuelBonuses);
+  return Math.min(24, Math.max(0, moonBonuses.offlineHours + fuelBonuses.offlineHours + upgradeBonuses.offlineHours));
+}
+
+export function getOfflineProductionMultiplier(state) {
+  return offlineProductionMultiplier(getEconomySnapshot(state));
 }
 
 export function applyOfflineEarnings(state, report) {
@@ -45,4 +53,11 @@ export function applyOfflineEarnings(state, report) {
   state.stats.offlineClaims += 1;
   state.stats.longestOfflineSeconds = Math.max(state.stats.longestOfflineSeconds, report.elapsedSeconds);
   return true;
+}
+
+function offlineProductionMultiplier(snapshot) {
+  return Math.min(2, Math.max(1,
+    Number(snapshot.fuelBonuses?.offlineProductionMultiplier ?? 1)
+      * Number(snapshot.upgradeBonuses?.offlineProductionMultiplier ?? 1),
+  ));
 }

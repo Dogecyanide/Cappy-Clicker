@@ -1,4 +1,4 @@
-.cappy-stage { min-height: 740px; padding: 24px 22px 20px; border-radius: 34px 17px 27px 18px; overflow: hidden; background: linear-gradient(160deg, rgba(255,250,238,.96), rgba(255,227,160,.96)); }
+.cappy-stage { min-height: 480px; padding: 21px 20px 18px; border-radius: 34px 17px 27px 18px; overflow: hidden; background: linear-gradient(160deg, rgba(255,250,238,.96), rgba(255,227,160,.96)); }
 .cappy-stage::before { content: ""; position: absolute; inset: 12px; border: 2px dashed #d29b66; border-radius: inherit; pointer-events: none; }
 .cappy-stage > header { position: relative; z-index: 2; }
 .cappy-stage h1 { margin: 5px 0 8px; font-size: clamp(34px, 3.5vw, 58px); line-height: .93; letter-spacing: -.055em; }
@@ -8,7 +8,7 @@
 .postcard-pin::after { content: ""; position: absolute; top: 4px; left: 4px; width: 7px; height: 14px; border-radius: 99px; background: #fff; border: 1px solid #777; }
 .postcard-pin--left { left: 28px; transform: rotate(-8deg); }
 .postcard-pin--right { right: 28px; transform: rotate(7deg); }
-.cappy-arena { position: relative; height: 385px; margin: 6px -15px 0; display: grid; place-items: center; isolation: isolate; }
+.cappy-arena { position: relative; height: 215px; margin: 2px -15px 0; display: grid; place-items: center; isolation: isolate; }
 .cappy-arena::before { content: ""; position: absolute; width: 88%; aspect-ratio: 1.4; border-radius: 50%; background: radial-gradient(ellipse, rgba(56,143,188,.38), transparent 68%); transform: translateY(65px); }
 .cappy-arena canvas, [data-click-feedback] { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 4; }
 .cappy-orbit { position: absolute; border: 2px dashed rgba(194,53,50,.24); border-radius: 50%; transform: rotate(-16deg); }
@@ -44,7 +44,39 @@ body[data-cappy-style="aurora"] .cappy-button img { animation: cappy-aurora 7s l
 .stage-ticket > span { padding: 5px 8px; color: #3c2943; background: var(--gold); border-radius: 5px; font-weight: 1000; text-transform: uppercase; }
 .stage-ticket p { margin: 0; font-size: 12px; }
 .click-pop { position: absolute; opacity: 0; color: #fff; font-size: 19px; font-weight: 1000; text-shadow: 0 3px 0 var(--red-dark), 0 0 8px rgba(0,0,0,.4); transform: translate(-50%,-50%); }
-.click-pop--critical { color: #fff09a; font-size: 27px; }
+
+.flight-deck { padding: 13px; overflow: hidden; border-radius: 16px 25px 14px 20px; background: radial-gradient(circle at 12% 12%, rgba(105,232,239,.36), transparent 26%), linear-gradient(145deg, rgba(242,253,255,.98), rgba(255,243,186,.98)); }
+.flight-deck::before { content: ""; position: absolute; inset: 7px; border: 1px dashed #7a8c91; border-radius: inherit; pointer-events: none; }
+.flight-deck__header { position: relative; z-index: 1; display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 9px; }
+.flight-deck__header h2 { margin: 1px 0 0; color: #30435c; font-size: 20px; line-height: 1; }
+.flight-deck__header button { padding: 6px 8px; border: 2px solid #354452; border-radius: 8px; color: #fff; background: #5368a8; box-shadow: 0 2px 0 #354452; font-size: 8px; font-weight: 1000; cursor: pointer; }
+.flight-deck__readout { position: relative; z-index: 1; display: grid; grid-template-columns: 86px minmax(0, 1fr); align-items: center; gap: 10px; }
+.fuel-dipstick { position: relative; display: grid; grid-template-columns: 38px 36px; gap: 5px; height: 102px; padding: 4px; border: 2px solid #445466; border-radius: 10px; background: rgba(255,255,255,.7); box-shadow: inset 0 0 0 3px rgba(89,120,132,.12); }
+.fuel-dipstick__well { position: relative; overflow: hidden; border: 3px solid #405064; border-radius: 7px 7px 12px 12px; background: linear-gradient(90deg, #e6f5f5, #c5d5dd); }
+.fuel-dipstick__well::after { content: ""; position: absolute; z-index: 3; inset: 4px auto 4px 4px; width: 3px; border-radius: 99px; background: rgba(255,255,255,.7); }
+.fuel-dipstick__well > span { position: absolute; inset: auto 0 0; min-height: 2px; background: linear-gradient(180deg, #b8fff1, #42d4dc 40%, #7564d4); transition: height 1.4s cubic-bezier(.16,.82,.2,1); }
+.fuel-dipstick__well > span::before { content: ""; position: absolute; left: -10%; top: -4px; width: 120%; height: 8px; border-radius: 50%; background: #c7fff5; box-shadow: 0 2px 0 rgba(34,169,187,.5); }
+.fuel-dipstick__well i { position: absolute; left: 40%; bottom: 28%; width: 7px; height: 7px; border: 1px solid rgba(255,255,255,.86); border-radius: 50%; }
+.fuel-dipstick__marks { display: flex; flex-direction: column; justify-content: space-between; padding-block: 1px; color: #61707a; font-size: 6px; font-weight: 1000; letter-spacing: .04em; }
+.fuel-dipstick__marks span { display: flex; align-items: center; gap: 3px; }
+.fuel-dipstick__marks span::before { content: ""; width: 7px; border-top: 1px solid #718087; }
+.flight-deck__numbers { min-width: 0; display: grid; gap: 2px; }
+.flight-deck__numbers strong { color: #304b6b; font-size: 29px; line-height: 1; font-variant-numeric: tabular-nums; }
+.flight-deck__numbers > span { color: #4c4d75; font-size: 12px; font-weight: 1000; }
+.flight-deck__numbers small { overflow: hidden; color: #6f7278; font-size: 8px; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
+.flight-deck__numbers small:last-child { margin-top: 4px; padding-top: 4px; border-top: 1px dashed #99a3a4; color: #6e5b73; }
+.shine-receipt { position: relative; z-index: 1; display: grid; grid-template-columns: 36px minmax(0, 1fr); gap: 8px; margin-top: 9px; padding: 8px; border: 2px solid #7c7480; border-radius: 8px 14px 8px 14px; background: rgba(255,255,255,.76); box-shadow: 3px 3px 0 rgba(66,61,79,.13); }
+.shine-receipt__icon { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; color: #fff; background: #7a7280; border: 2px solid #fff; outline: 1px solid #7a7280; font-size: 18px; font-weight: 1000; }
+.shine-receipt h3 { margin: 1px 0 2px; font-size: 12px; }
+.shine-receipt strong { display: block; color: #5e5364; font-size: 9px; }
+.shine-receipt p { margin: 3px 0 0; color: #746975; font-size: 8px; line-height: 1.25; }
+.shine-receipt[data-tone="shine"] { border-color: #c58b19; background: linear-gradient(120deg, #fff8b9, #fff); }
+.shine-receipt[data-tone="shine"] .shine-receipt__icon { color: #6c3b10; background: var(--gold); outline-color: #b77816; }
+.shine-receipt[data-tone="shine"] strong { color: #98631a; }
+.shine-receipt[data-tone="gloom"] { border-color: #6f318c; background: linear-gradient(120deg, #eee1fa, #fff); }
+.shine-receipt[data-tone="gloom"] .shine-receipt__icon { background: #6f318c; outline-color: #32113f; }
+.shine-receipt[data-tone="gloom"] strong { color: #712a87; }
+.shine-receipt.is-new { animation: receipt-punch .44s cubic-bezier(.2,1.4,.4,1); }
 
 .producer-card { display: grid; grid-template-columns: 122px minmax(0,1fr); min-height: 208px; content-visibility: auto; contain-intrinsic-size: auto 208px; background: rgba(255,250,239,.97); border: 3px solid #3e2942; border-radius: 18px 11px 18px 10px; box-shadow: var(--soft-shadow); overflow: hidden; transition: transform .18s, border-color .18s, filter .18s; }
 .producer-card.is-affordable { border-color: var(--green); }
@@ -277,6 +309,10 @@ body[data-cappy-style="aurora"] .cappy-button img { animation: cappy-aurora 7s l
 .cosmetic-card.is-equipped { border-color: var(--gold-dark); background: linear-gradient(120deg, #fff1a9, #fff9e8); box-shadow: inset 5px 0 0 var(--gold); }
 .cosmetic-card.is-equipped::after { content: "ON"; position: absolute; top: 5px; right: 6px; padding: 2px 5px; border-radius: 99px; color: #fff; background: var(--green); font-size: 7px; font-weight: 1000; letter-spacing: .08em; }
 .cosmetic-preview { display: grid; place-items: center; width: 48px; height: 48px; border: 3px solid #fff; border-radius: 14px 9px 14px 9px; color: #fff; background: linear-gradient(145deg, var(--red), var(--red-dark)); box-shadow: 0 3px 0 rgba(59,35,57,.22); font-size: 23px; font-weight: 1000; }
+.cosmetic-preview--image { position: relative; overflow: hidden; isolation: isolate; background: #30465a; }
+.cosmetic-preview--image img { position: absolute; z-index: 0; inset: 0; width: 100%; height: 100%; object-fit: cover; filter: saturate(1.2) contrast(1.05); }
+.cosmetic-preview--image::after { content: ""; position: absolute; z-index: 1; inset: 0; background: linear-gradient(145deg, transparent 25%, rgba(27,14,38,.62)); }
+.cosmetic-preview--image b { position: relative; z-index: 2; align-self: end; justify-self: end; padding: 2px 4px; color: #fff; font-size: 12px; line-height: 1; text-shadow: 0 1px 3px #000; }
 .cosmetic-preview--gold, .cosmetic-preview--sunshine { color: #5c3515; background: linear-gradient(145deg, #fff69a, #eca528); }
 .cosmetic-preview--luigi, .cosmetic-preview--battlefield { background: linear-gradient(145deg, #8bd85a, #197842); }
 .cosmetic-preview--galaxy, .cosmetic-preview--comet, .cosmetic-preview--cosmic { background: radial-gradient(circle at 30% 23%, #fff 0 2px, transparent 3px), linear-gradient(145deg, #34276d, #8e4caa); }
@@ -385,7 +421,7 @@ body[data-cappy-style="aurora"] .cappy-button img { animation: cappy-aurora 7s l
 .banana-sticker { position: fixed; z-index: 50; left: 4vw; top: 30vh; display: none; font-size: 72px; transform: rotate(-20deg); filter: drop-shadow(0 8px 4px rgba(0,0,0,.3)); }
 body.has-banana .banana-sticker { display: block; }
 
-@media (min-width: 760px) and (max-width: 1450px) {
+@media (min-width: 760px) and (max-width: 1240px) {
   .right-rail .upgrade-list, .right-rail .moon-offers, .right-rail .badge-grid, .right-rail .cosmetic-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .right-rail .achievement-category-tabs { grid-template-columns: repeat(5, minmax(0, 1fr)); }
   .right-rail .route-census { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 15px; }
@@ -394,7 +430,7 @@ body.has-banana .banana-sticker { display: block; }
 }
 
 @media (max-width: 620px) {
-  .cappy-stage { min-height: 600px; padding: 19px 15px; }
+  .cappy-stage { min-height: 560px; padding: 19px 15px; }
   .cappy-arena { height: 310px; }
   .cappy-button { width: 88%; }
   .producer-card { grid-template-columns: 86px minmax(0,1fr); }
@@ -420,6 +456,7 @@ body.has-banana .banana-sticker { display: block; }
   .fuel-components > div { grid-template-columns: 24px minmax(0, 1fr) 36px; }
   .fuel-components .mini-meter { display: none; }
   .fuel-output { grid-template-columns: 1fr; }
+  .flight-deck__readout { grid-template-columns: 82px minmax(0, 1fr); }
   .achievement-category-tabs { grid-template-columns: 1fr; max-height: 210px; overflow: auto; }
   .cosmetic-card { grid-template-columns: 44px minmax(0, 1fr); }
   .cosmetic-preview { width: 42px; height: 42px; }

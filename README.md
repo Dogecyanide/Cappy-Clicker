@@ -31,19 +31,20 @@ npm run test:e2e
 ## Game systems
 
 - 40 progressively discovered producer destinations with Buy 1/10/25/100/Max controls. Each card builds a miniature district from that destination's real local artwork and divides huge ownership totals into exact labelled groups. The route interleaves *Odyssey*, *Super Mario 64*, *Sunshine*, *3D World*, *Galaxy*, *Mario Kart*, *Paper Mario*, *Yoshi's Island*, *Mario & Luigi*, and *Luigi's Mansion* instead of completing one game at a time.
-- 460 permanent upgrades: eleven varied milestones for every destination at 5, 15, 25, 50, 100, 150, 200, 350, 500, 750, and 1,000 owned, plus twenty Cappy techniques. Every producer milestone has its own authored name and flavour text. Effects include production boosts, discounts, neighbouring-route fusions, series bonuses, click improvements, and Shine modifiers.
+- 480 permanent upgrades: eleven varied milestones for every destination at 5, 15, 25, 50, 100, 150, 200, 350, 500, 750, and 1,000 owned, plus forty Cappy/Fuel techniques. Every producer milestone has its own authored name and flavour text. Effects include production boosts, discounts, neighbouring-route fusions, series bonuses, click improvements, offline systems, event protection, and Shine modifiers.
 - 700 authored achievements across ten categories. Each badge adds +0.02% additive production, reaching the +14% cap only when the passport is complete.
-- Odyssey Fuel, a permanent achievement-style tank blended from badges, Moons, Multi Moons, discovered routes, upgrades, and caught Shines. Fuel is never spent; ten coin-bought engine modules make its fill scale production, prices, clicking, offline time, fusions, and Shine payouts.
+- Odyssey Fuel, a permanent achievement-style tank blended from badges, Moons, Multi Moons, discovered routes, upgrades, and caught Shines. Fuel is never spent; eighteen coin-bought engine modules make its fill scale production, prices, clicking, offline time, event luck, Gloom protection, fusions, and Shine payouts. A compact dipstick remains beneath Cappy.
 - 50 finite, one-time Power Moons bought with current coins. Moons 10, 20, 30, 40, and 50 are Multi Moons with a much steeper price step and a much larger permanent reward; Moons never reset progress.
-- Rare clickable Shines appear during active play with six beneficial outcomes. Seven percent are cracked purple Gloom Shines with three risky outcomes instead.
-- 21 permanent cosmetics across Cappy styles, voyage backdrops, and synthesized sound packs.
+- Producer prices retain the familiar 15% curve through the first 50 of a destination, then bulk-logistics bands progressively soften the curve through 1,000 owned. Growth returns to 15% beyond 1,000 so endless ownership remains bounded instead of eclipsing the destination ladder.
+- Rare clickable Shines appear during active play with six beneficial outcomes. Seven percent are cracked purple Gloom Shines with three risky outcomes instead; the latest exact payout, penalty, protection, or timed effect stays in a receipt beneath Cappy. The Developer Lab can force every result.
+- 21 permanent cosmetics across Cappy styles, six distinct local-image voyage backdrops, and sound packs.
 - 18 optional King Boo outcomes with three genuinely cycling reel strips that stop on a committed-before-animation result, plus reload-safe effects, receipts, and a 0.5% triple-Boo catastrophe.
 - A 190-headline ambient news pool, varied reactive headlines, unseen-first selection, and recent-item suppression make the ticker substantially less repetitive.
 - Versioned local saving with validated CAPPY2 text and file export/import, clipboard support, confirmed local-save deletion, piecewise offline production, and Moon-expanded offline caps.
 - Readable short-scale names extend through centillion, with scientific notation used beyond the named range.
 - An optional, self-reported Open League for lifetime coins and CPS. The game works without it; a genuinely shared board requires deploying and configuring the included backend.
-- Responsive travel-brochure presentation, kingdom backdrops, a journey strip, capped canvas particles, reduced-motion and performance modes, synthesized WebAudio, and image fallbacks.
-- Hidden collection panels and the Developer Lab load only when opened, destination rendering is cached, and local art decodes asynchronously for a faster first usable frame.
+- Responsive travel-brochure presentation, eight journey backdrops, a journey strip, capped canvas particles, reduced-motion and performance modes, synthesized effects, supplied Moon/Multi Moon fanfares, and image fallbacks.
+- On desktop, Cappy, destinations, and the collection rail scroll independently; stacked phone layouts return to normal document flow. Collection panels are paged and rendered on demand, the Developer Lab loads only when opened, audio samples load only when played, destination rendering is cached, and local art decodes asynchronously.
 - A Developer Lab for exact economy, collection, producer, save, King Boo, normal Shine, Gloom Shine, and deterministic Shine-outcome testing. Open it from the footer or press Shift+D.
 
 ## Architecture
@@ -75,19 +76,21 @@ Offline earnings begin after 30 seconds, use the current 8–24 hour cap, and in
 
 ## Balance simulation
 
-`npm run simulate` runs deterministic cheapest-producer, fastest-ROI, upgrade-first, balanced-with-Moons, and idle-after-first-Frog strategies. It uses the canonical economy, expected 5% critical tosses, no King Boo randomness, and a 30-day horizon. The current pacing checkpoints cover the first 20 of the 40 destinations; the remaining stops are still included in content validation and tests. The idle run is seeded with exactly the first Frog because a truly zero-click fresh save correctly never starts.
+`npm run simulate` runs active, balanced, and idle Grand Tour strategies across a ten-year horizon. It uses the canonical changing critical stats, continuous automatic production, limited daily active-click windows, and no speculative Shine or King Boo income. The idle run is seeded with exactly the first Frog because a truly zero-click fresh save correctly never starts.
 
-The tuned balanced baseline currently reaches:
+The tuned active baseline currently reaches:
 
 | Milestone | Simulated time | Rough target |
 |---|---:|---:|
-| First upgrade | 2.7 minutes | 2–5 minutes |
-| First 5 destinations | 31.8 minutes | 25–60 minutes |
-| Destination 10 | 9.8 hours | 6–18 hours |
-| Destination 15 | 5.8 days | 3–8 days |
-| Destination 20 | 14.1 days | 10–21 days |
+| First upgrade | 1.7 minutes | 1–3 minutes |
+| First 5 destinations | 24.5 minutes | 20–60 minutes |
+| Destination 10 | 3.9 hours | 3–12 hours |
+| Destination 15 | 2.9 days | 2–8 days |
+| Destination 20 | 8.5 days | 7–21 days |
+| All 40 destinations | 26.4 days | Long-form tour |
+| First destination at 1,000 owned | 17.3 days | Late ownership ladder |
 
-All current balanced-strategy pacing checks pass. Different player priorities, active click rates, voluntary King Boo spins, rare Shine results, and offline habits will change real play time.
+The complete passport is deliberately much longer: the deterministic run reaches all routes at 100 owned in about 167 days and saves the final Moons, Fuel hardware, and techniques for multi-year play. Four manual throws per second stay below 5% of full-catalogue output, so clicking helps without becoming the dominant strategy. Different priorities, Shine results, King Boo spins, and check-in habits will change real play time.
 
 ## Optional Open League backend
 
@@ -97,13 +100,13 @@ The supported backend is the Cloudflare Worker and D1 package in [`worker/leader
 
 One-time deployment:
 
-1. Enter `worker/leaderboard/`, run `npm install`, authenticate with `npx wrangler login`, and create the D1 database with `npx wrangler d1 create cappy-clicker-leaderboard`.
-2. Replace the placeholder `database_id` in `worker/leaderboard/wrangler.jsonc` with the returned ID. Review `ALLOWED_ORIGINS`; each entry is only a scheme and host, never a GitHub Pages repository path.
-3. Store a private random hashing secret of at least 32 characters with `npx wrangler secret put TOKEN_PEPPER`.
-4. Run `npm run db:migrate:remote` and then `npm run deploy` from `worker/leaderboard/`.
-5. Set `VITE_LEADERBOARD_API_URL` to the deployed Worker URL, without a trailing slash, in the environment that runs the front-end `npm run build`. Vite embeds this value at build time, so changing it requires a new front-end build.
+1. Enter `worker/leaderboard/`, run `npm install`, and authenticate in the browser with `npx wrangler login`.
+2. Run `npm run cloud:create`; Wrangler creates D1 and writes its ID into `wrangler.jsonc` automatically.
+3. Run `npm run db:migrate:remote`, `npm run deploy`, and `npm run secret:generate`, in that order.
+4. Confirm the printed Worker URL plus `/health` reports `submissionsReady: true`.
+5. In GitHub's repository **Actions variables**, set `VITE_LEADERBOARD_API_URL` to that Worker URL without a trailing slash, then manually run the Pages workflow once.
 
-For GitHub Pages, create a repository Actions variable named `VITE_LEADERBOARD_API_URL` containing that Worker URL. The checked-in Pages workflow already passes the variable to Vite's build step. For a local build, set the same environment variable before `npm run dev` or `npm run build`; [`.env.example`](.env.example) shows the expected form.
+The Pages workflow checks the configured Worker's `/health` route before embedding it. If the variable is absent it emits a clear warning and safely builds the game with Open League offline; if a configured Worker is broken or incomplete it stops instead of publishing a misleading `ONLINE` panel. For a local build, set the same environment variable before `npm run dev` or `npm run build`; [`.env.example`](.env.example) shows the expected form.
 
 Until both the Worker/D1 deployment and that front-end build configuration are complete, each browser only sees the offline Open League state. Local Worker setup, migrations, API routes, and operational limits are documented in [`worker/leaderboard/README.md`](worker/leaderboard/README.md).
 

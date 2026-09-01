@@ -11,7 +11,7 @@ export function createShineWidget(element, store, options = {}) {
     if (!result?.ok) return;
     options.onClaim?.(result);
     if (result.kind === 'corrupted') options.audio?.boo(true);
-    else options.audio?.moon();
+    else options.audio?.shine();
   });
 
   function update(state) {

@@ -59,7 +59,12 @@ export function claimShine(state, options = {}) {
   }
   const snapshot = getEconomySnapshot(state, { now });
   const profile = getClickProfile(state, { now, snapshot });
-  const result = applyShineEffect(state, outcome, { now, snapshot, payoutMultiplier: profile.shinePayout });
+  const result = applyShineEffect(state, outcome, {
+    now,
+    snapshot,
+    payoutMultiplier: profile.shinePayout,
+    gloomLossReduction: profile.gloomLossReduction,
+  });
   state.stats.shinesClaimed += 1;
   state.stats.shineStreak += 1;
   if (kind === 'corrupted') state.stats.corruptedShines += 1;
@@ -91,9 +96,12 @@ function applyShineEffect(state, outcome, context) {
     return { amount: amount.toString(), loss: '0' };
   }
   if (effect.type === 'coin-loss') {
-    const loss = D(state.coins).mul(effect.fraction).floor();
+    const unprotectedLoss = D(state.coins).mul(effect.fraction).floor();
+    const protection = Math.max(0, Math.min(0.75, Number(context.gloomLossReduction ?? 0)));
+    const loss = unprotectedLoss.mul(1 - protection).floor();
+    const prevented = unprotectedLoss.sub(loss);
     state.coins = D(state.coins).sub(loss).max(0);
-    return { amount: '0', loss: loss.toString() };
+    return { amount: '0', loss: loss.toString(), prevented: prevented.toString() };
   }
   if (effect.type === 'strongest-producer-disabled') {
     addTimedEffect(state, { type: 'producer-disabled', producerId: strongestProducerId(state, { now: context.now }), expiresAt, source: outcome.id });

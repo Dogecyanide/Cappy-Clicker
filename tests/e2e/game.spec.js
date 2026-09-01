@@ -56,7 +56,7 @@ test('fresh voyage: click, producer, milestone upgrade, achievement, and Power M
   await expect(firstUpgrade).toBeVisible();
   await expect(firstUpgrade).toBeEnabled();
   await firstUpgrade.click();
-  await expect(page.locator('.installed-section .count-pill')).toHaveText('1/460');
+  await expect(page.locator('.installed-section .count-pill')).toHaveText('1/480');
   await expect(page.locator('[data-badges]')).toHaveText(/[1-9]\d*\/700/);
 
   await page.locator('[data-tab="moons"]').click();
@@ -65,6 +65,24 @@ test('fresh voyage: click, producer, milestone upgrade, achievement, and Power M
   await firstMoon.click();
   await expect(page.locator('.moon-count')).toHaveText('1/50');
   await expect(frog.locator('[data-each-rate]')).not.toHaveText('0.8');
+  expect(errors).toEqual([]);
+});
+
+test('critical tosses keep their payout and animation without making a text popup', async ({ page }) => {
+  const errors = watchRuntimeErrors(page);
+  await freshGame(page);
+
+  await page.evaluate(() => { Math.random = () => 1; });
+  await page.locator('[data-cappy-button]').click({ force: true });
+  await expect(page.locator('.click-pop.is-active')).toHaveCount(1);
+
+  await page.evaluate(() => { Math.random = () => 0; });
+  await page.locator('[data-cappy-button]').click({ force: true });
+
+  await expect.poll(() => page.evaluate(() => window.cappyClicker.store.state.stats.criticalClicks)).toBe(1);
+  await expect(page.locator('[data-cappy-button]')).toHaveClass(/is-critical/);
+  await expect(page.locator('.click-pop.is-active')).toHaveCount(0);
+  expect(await page.evaluate(() => window.cappyClicker.store.state.coins.gte(6))).toBe(true);
   expect(errors).toEqual([]);
 });
 
@@ -101,6 +119,24 @@ test('King Boo stays top-right, can be ignored, and keeps a committed spin acros
   expect(symbolsAfter).toEqual(symbolsBefore);
   await expect(page.locator('.boo-machine.is-result')).toBeVisible({ timeout: 7_000 });
   await expect(boo.getByRole('heading', { name: 'Royal Flush-ish' })).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
+test('King Boo accepts one deliberately held click while the countdown updates', async ({ page }) => {
+  const errors = watchRuntimeErrors(page);
+  await freshGame(page);
+  await page.evaluate(() => window.cappyClicker.debug.spawnBoo());
+
+  const spinButton = page.locator('[data-spin-boo]');
+  await expect(spinButton).toBeVisible();
+  await spinButton.hover();
+  await page.mouse.down();
+  await page.waitForTimeout(450);
+  await page.mouse.up();
+
+  await expect(page.locator('.boo-machine.is-spinning')).toBeVisible();
+  await expect(spinButton).toHaveCount(0);
+  await expect.poll(() => page.evaluate(() => window.cappyClicker.store.state.stats.booSpins)).toBe(1);
   expect(errors).toEqual([]);
 });
 
@@ -147,9 +183,13 @@ test('Developer Lab can preview both Shines and apply an exact outcome', async (
   await expect(page.locator('.shine-target')).toHaveClass(/is-corrupted/);
 
   await openLab(page);
+  await page.locator('[data-dev-dialog] [name="coins"]').fill('1000');
+  await page.locator('[data-dev="add-coins"]').click();
   await page.locator('[name="shine"]').selectOption('gloom-toll');
   await page.locator('[data-dev="shine-force"]').click();
   await expect(page.locator('[data-dev-output]')).toContainText('Gloom Toll');
+  await expect(page.locator('[data-shine-receipt]')).toContainText('Gloom Toll');
+  await expect(page.locator('[data-shine-receipt-reward]')).toContainText('−30 Kingdom Coins');
   await expect.poll(() => page.evaluate(() => window.cappyClicker.store.state.stats.shineOutcomeCounts['gloom-toll'])).toBe(1);
   expect(errors).toEqual([]);
 });
@@ -158,9 +198,60 @@ test('mobile and ultrawide layouts avoid overflow and use the available canvas',
   const errors = watchRuntimeErrors(page);
   await page.setViewportSize({ width: 320, height: 812 });
   await freshGame(page);
-  const mobile = await page.evaluate(() => ({ width: innerWidth, scrollWidth: document.documentElement.scrollWidth }));
+  const mobile = await page.evaluate(() => ({
+    width: innerWidth,
+    scrollWidth: document.documentElement.scrollWidth,
+    cappyOverflow: getComputedStyle(document.querySelector('.cappy-column')).overflowY,
+    panelOverscroll: getComputedStyle(document.querySelector('.rail-panel:not([hidden])')).overscrollBehaviorY,
+  }));
   expect(mobile.scrollWidth).toBeLessThanOrEqual(mobile.width);
+  expect(mobile.cappyOverflow).toBe('visible');
+  expect(mobile.panelOverscroll).toBe('auto');
   await expect(page.locator('[data-cappy-button]')).toBeVisible();
+  const mobileModuleOrder = await page.evaluate(() => ({
+    collectionsTop: document.querySelector('[data-right-rail]').getBoundingClientRect().top,
+    producersTop: document.querySelector('.producer-shop').getBoundingClientRect().top,
+  }));
+  expect(mobileModuleOrder.collectionsTop).toBeLessThan(mobileModuleOrder.producersTop);
+
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.reload();
+  const shortDesktop = await page.evaluate(() => {
+    const column = document.querySelector('.cappy-column');
+    const deck = document.querySelector('[data-flight-deck]');
+    const rail = document.querySelector('[data-right-rail]').getBoundingClientRect();
+    return {
+      columnClientHeight: column.clientHeight,
+      columnScrollHeight: column.scrollHeight,
+      deckClientHeight: deck.clientHeight,
+      deckScrollHeight: deck.scrollHeight,
+      railBottom: rail.bottom,
+    };
+  });
+  expect(shortDesktop.columnScrollHeight).toBeGreaterThan(shortDesktop.columnClientHeight);
+  expect(shortDesktop.deckClientHeight).toBeGreaterThan(200);
+  expect(shortDesktop.deckScrollHeight).toBeLessThanOrEqual(shortDesktop.deckClientHeight + 1);
+  expect(shortDesktop.railBottom).toBeLessThanOrEqual(721);
+
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.reload();
+  const desks = await page.evaluate(() => {
+    const rail = document.querySelector('[data-right-rail]').getBoundingClientRect();
+    const cappy = document.querySelector('.cappy-column');
+    const shop = document.querySelector('.producer-shop');
+    return {
+      railBottom: rail.bottom,
+      railOverflow: getComputedStyle(document.querySelector('.rail-panel:not([hidden])')).overflowY,
+      cappyOverflow: getComputedStyle(cappy).overflowY,
+      shopOverflow: getComputedStyle(shop).overflowY,
+      fuelMaximum: document.querySelector('[data-fuel-depth]').getAttribute('aria-valuemax'),
+    };
+  });
+  expect(desks.railBottom).toBeLessThanOrEqual(901);
+  expect(desks.railOverflow).toBe('auto');
+  expect(desks.cappyOverflow).toBe('auto');
+  expect(desks.shopOverflow).toBe('auto');
+  expect(desks.fuelMaximum).toBe('100');
 
   await page.setViewportSize({ width: 2560, height: 1440 });
   await page.reload();

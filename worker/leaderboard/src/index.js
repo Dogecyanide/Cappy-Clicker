@@ -61,8 +61,16 @@ export default {
 };
 
 async function health(env) {
-  await env.DB.prepare('SELECT 1 AS ok').first();
-  return json({ ok: true, service: 'cappy-clicker-open-league' }, 200, {
+  if (!env.TOKEN_PEPPER || String(env.TOKEN_PEPPER).length < 24) {
+    throw new ApiError(503, 'TOKEN_PEPPER is not configured.');
+  }
+  const tableCount = await env.DB.prepare(`
+    SELECT COUNT(*) AS count
+    FROM sqlite_master
+    WHERE type = 'table' AND name IN ('players', 'scores', 'submissions')
+  `).first('count');
+  if (Number(tableCount) !== 3) throw new ApiError(503, 'The leaderboard database migration is not applied.');
+  return json({ ok: true, service: 'cappy-clicker-open-league', submissionsReady: true }, 200, {
     'cache-control': 'no-store',
   });
 }

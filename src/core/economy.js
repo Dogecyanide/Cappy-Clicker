@@ -1,5 +1,5 @@
 import { D, Decimal, sum } from './numbers.js';
-import { PRODUCERS, PRODUCER_BY_ID, PRODUCER_GROWTH } from '../data/buildings.js';
+import { PRODUCERS, PRODUCER_BY_ID, PRODUCER_GROWTH_SEGMENTS } from '../data/buildings.js';
 import { BUILDING_UPGRADE_BY_ID } from '../data/building-upgrades.js';
 import { POWER_MOON_BY_ID } from '../data/power-moons.js';
 import { getFuelProfile } from '../systems/fuel.js';
@@ -13,17 +13,46 @@ export function getOwned(state, producerId) {
 export function getProducerCost(producerId, owned = 0) {
   const producer = PRODUCER_BY_ID[producerId];
   if (!producer) return D(0);
-  return D(producer.baseCost).mul(Decimal.pow(PRODUCER_GROWTH, Math.max(0, owned))).ceil();
+  return D(producer.baseCost).mul(producerGrowthFactor(Math.max(0, owned))).ceil();
 }
 
 export function getBulkCost(producerId, owned = 0, quantity = 1, modifiers = {}) {
   const producer = PRODUCER_BY_ID[producerId];
   if (!producer || quantity <= 0) return D(0);
   const count = Math.max(0, Math.floor(quantity));
-  const first = D(producer.baseCost).mul(Decimal.pow(PRODUCER_GROWTH, Math.max(0, owned)));
-  const geometric = Decimal.pow(PRODUCER_GROWTH, count).sub(1).div(PRODUCER_GROWTH - 1);
   const priceMultiplier = Math.max(0.55, Math.min(3, Number(modifiers.priceMultiplier ?? 1)));
-  return first.mul(geometric).mul(priceMultiplier).ceil();
+  return producerBulkGrowthFactor(Math.max(0, owned), count)
+    .mul(producer.baseCost)
+    .mul(priceMultiplier)
+    .ceil();
+}
+
+function producerGrowthFactor(owned) {
+  let cursor = 0;
+  let factor = D(1);
+  for (const segment of PRODUCER_GROWTH_SEGMENTS) {
+    if (owned <= cursor) break;
+    const length = Math.min(owned, segment.until) - cursor;
+    if (length > 0) factor = factor.mul(Decimal.pow(segment.growth, length));
+    cursor += length;
+  }
+  return factor;
+}
+
+function producerBulkGrowthFactor(owned, quantity) {
+  let cursor = owned;
+  let remaining = quantity;
+  let total = D(0);
+  while (remaining > 0) {
+    const segment = PRODUCER_GROWTH_SEGMENTS.find(({ until }) => cursor < until) ?? PRODUCER_GROWTH_SEGMENTS.at(-1);
+    const length = Math.min(remaining, Number.isFinite(segment.until) ? segment.until - cursor : remaining);
+    const first = producerGrowthFactor(cursor);
+    const geometric = Decimal.pow(segment.growth, length).sub(1).div(segment.growth - 1);
+    total = total.add(first.mul(geometric));
+    cursor += length;
+    remaining -= length;
+  }
+  return total;
 }
 
 export function activeEffects(state, now = Date.now()) {
@@ -73,13 +102,18 @@ export function getUpgradeBonuses(state, moonBonuses = getMoonBonuses(state), fu
     seriesMultipliers: {},
     fusionMultipliers: {},
     globalAdditive: 0,
+    globalPriceDiscount: 0,
     flatClickMultiplier: 1,
-    clickAssist: 0,
-    criticalChance: 0.05,
+    clickAssist: fuelBonuses.clickAssist ?? 0,
+    criticalChance: 0.05 + (fuelBonuses.criticalChance ?? 0),
     criticalMultiplier: 5,
     comboWindow: 700,
-    shineDuration: 0,
+    offlineHours: 0,
+    offlineProductionMultiplier: 1,
+    eventLuck: 0,
+    shineDuration: fuelBonuses.shineDuration ?? 0,
     shinePayout: 1,
+    gloomLossReduction: fuelBonuses.gloomLossReduction ?? 0,
   };
   for (const id of state.upgrades ?? []) {
     const upgrade = BUILDING_UPGRADE_BY_ID[id];
@@ -100,18 +134,31 @@ export function getUpgradeBonuses(state, moonBonuses = getMoonBonuses(state), fu
         bonuses.fusionMultipliers[effect.partnerId] = (bonuses.fusionMultipliers[effect.partnerId] ?? 1) * multiplier;
       }
       if (effect.type === 'global-additive') bonuses.globalAdditive += effect.amount;
+      if (effect.type === 'fuel-scaled-global-additive') bonuses.globalAdditive += effect.maxAmount * (fuelBonuses.ratio ?? 0);
+      if (effect.type === 'global-price-discount') bonuses.globalPriceDiscount += effect.amount;
       if (effect.type === 'flat-click-multiplier') bonuses.flatClickMultiplier *= effect.multiplier;
+      if (effect.type === 'fuel-scaled-flat-click-multiplier') bonuses.flatClickMultiplier *= 1 + effect.maxAmount * (fuelBonuses.ratio ?? 0);
       if (effect.type === 'click-assist-add') bonuses.clickAssist += effect.amount;
+      if (effect.type === 'fuel-scaled-click-assist') bonuses.clickAssist += effect.maxAmount * (fuelBonuses.ratio ?? 0);
       if (effect.type === 'critical-chance-add') bonuses.criticalChance += effect.amount;
       if (effect.type === 'critical-multiplier-add') bonuses.criticalMultiplier += effect.amount;
       if (effect.type === 'combo-window-add') bonuses.comboWindow += effect.milliseconds;
+      if (effect.type === 'offline-hours-add') bonuses.offlineHours += effect.hours;
+      if (effect.type === 'offline-production-multiplier') bonuses.offlineProductionMultiplier *= effect.multiplier;
+      if (effect.type === 'event-luck-add') bonuses.eventLuck += effect.amount;
       if (effect.type === 'shine-duration-add') bonuses.shineDuration += effect.seconds;
       if (effect.type === 'shine-payout') bonuses.shinePayout *= effect.multiplier;
+      if (effect.type === 'gloom-loss-reduction') bonuses.gloomLossReduction += effect.amount;
     }
   }
   bonuses.criticalChance = Math.min(0.08, bonuses.criticalChance);
   bonuses.comboWindow = Math.min(1_200, bonuses.comboWindow);
   bonuses.clickAssist = Math.min(0.01, bonuses.clickAssist);
+  bonuses.globalPriceDiscount = Math.min(0.05, bonuses.globalPriceDiscount);
+  bonuses.offlineHours = Math.min(3, bonuses.offlineHours);
+  bonuses.offlineProductionMultiplier = Math.min(1.5, bonuses.offlineProductionMultiplier);
+  bonuses.eventLuck = Math.min(0.1, bonuses.eventLuck);
+  bonuses.gloomLossReduction = Math.min(0.65, bonuses.gloomLossReduction);
   return bonuses;
 }
 
@@ -127,7 +174,7 @@ export function getPriceMultiplier(state, producerId, context = {}) {
   const fuelProfile = context.fuelProfile ?? getFuelProfile(state);
   const fuelBonuses = context.fuelBonuses ?? fuelProfile.bonuses;
   const upgradeBonuses = context.upgradeBonuses ?? getUpgradeBonuses(state, moonBonuses, fuelBonuses);
-  const permanentDiscount = moonBonuses.priceDiscount + fuelBonuses.priceDiscount + (upgradeBonuses.producerDiscounts[producerId] ?? 0);
+  const permanentDiscount = moonBonuses.priceDiscount + fuelBonuses.priceDiscount + upgradeBonuses.globalPriceDiscount + (upgradeBonuses.producerDiscounts[producerId] ?? 0);
   return Math.max(0.55, multiplier * (1 - Math.min(0.45, permanentDiscount)));
 }
 
@@ -138,12 +185,19 @@ export function getAffordableAmount(state, producerId, budget = state.coins, cap
   const available = D(budget);
   const priceMultiplier = getPriceMultiplier(state, producerId, context);
   if (available.lt(getBulkCost(producerId, owned, 1, { priceMultiplier }))) return 0;
-  const first = D(producer.baseCost).mul(Decimal.pow(PRODUCER_GROWTH, owned)).mul(priceMultiplier);
-  const estimated = available.mul(PRODUCER_GROWTH - 1).div(first).add(1).log(PRODUCER_GROWTH);
-  let quantity = Math.max(1, Math.min(cap, Math.floor(estimated)));
-  while (quantity < cap && getBulkCost(producerId, owned, quantity + 1, { priceMultiplier }).lte(available)) quantity += 1;
-  while (quantity > 0 && getBulkCost(producerId, owned, quantity, { priceMultiplier }).gt(available)) quantity -= 1;
-  return quantity;
+  let lower = 1;
+  let upper = 1;
+  while (upper < cap && getBulkCost(producerId, owned, upper, { priceMultiplier }).lte(available)) {
+    lower = upper;
+    upper = Math.min(cap, upper * 2);
+  }
+  if (upper === cap && getBulkCost(producerId, owned, upper, { priceMultiplier }).lte(available)) return cap;
+  while (lower + 1 < upper) {
+    const middle = Math.floor((lower + upper) / 2);
+    if (getBulkCost(producerId, owned, middle, { priceMultiplier }).lte(available)) lower = middle;
+    else upper = middle;
+  }
+  return lower;
 }
 
 export function getProducerBreakdown(state, producerId, context = {}) {
@@ -231,6 +285,7 @@ export function getClickProfile(state, context = {}) {
     comboWindow: upgradeBonuses.comboWindow,
     shineDuration: upgradeBonuses.shineDuration,
     shinePayout: moonBonuses.shinePayout * fuelBonuses.shinePayout * upgradeBonuses.shinePayout,
+    gloomLossReduction: upgradeBonuses.gloomLossReduction,
   };
 }
 

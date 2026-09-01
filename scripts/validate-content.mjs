@@ -39,11 +39,11 @@ function rejectSharedPhrases(items, field, label, phraseLength = 7) {
 }
 
 check(PRODUCERS.length === 40, `Expected 40 producers, found ${PRODUCERS.length}.`);
-check(BUILDING_UPGRADES.length === 460, `Expected 460 permanent upgrades, found ${BUILDING_UPGRADES.length}.`);
+check(BUILDING_UPGRADES.length === 480, `Expected 480 permanent upgrades, found ${BUILDING_UPGRADES.length}.`);
 check(ACHIEVEMENTS.length === 700, `Expected 700 achievements, found ${ACHIEVEMENTS.length}.`);
 check(POWER_MOONS.length === 50, `Expected 50 Power Moons, found ${POWER_MOONS.length}.`);
 check(COSMETICS.length === 21, `Expected 21 cosmetics, found ${COSMETICS.length}.`);
-check(FUEL_MODULES.length === 10, `Expected 10 Odyssey Fuel modules, found ${FUEL_MODULES.length}.`);
+check(FUEL_MODULES.length === 18, `Expected 18 Odyssey Fuel modules, found ${FUEL_MODULES.length}.`);
 check(POWER_MOONS.filter(({ isMulti }) => isMulti).length === 5, 'Expected a Multi Moon at every tenth Moon.');
 check(POWER_MOONS.every((moon, index) => Boolean(moon.isMulti) === ((index + 1) % 10 === 0)), 'Multi Moons must be numbers 10, 20, 30, 40, and 50.');
 check(Math.abs(BOO_PROBABILITY_TOTAL - 1) < 1e-10, `King Boo probabilities total ${BOO_PROBABILITY_TOTAL}, not 1.`);
@@ -58,10 +58,11 @@ unique(PRODUCERS, 'description', 'Producers', true);
 unique(BUILDING_UPGRADES, 'id', 'Upgrades');
 unique(BUILDING_UPGRADES, 'name', 'Upgrades');
 unique(BUILDING_UPGRADES, 'flavour', 'Upgrades', true);
-rejectSharedPhrases(BUILDING_UPGRADES, 'flavour', 'Upgrade flavour');
+rejectSharedPhrases(BUILDING_UPGRADES, 'flavour', 'Upgrade flavour', 5);
 unique(ACHIEVEMENTS, 'id', 'Achievements');
 unique(ACHIEVEMENTS, 'name', 'Achievements');
 unique(ACHIEVEMENTS, 'flavour', 'Achievements', true);
+rejectSharedPhrases(ACHIEVEMENTS, 'flavour', 'Achievement flavour', 5);
 unique(POWER_MOONS, 'id', 'Power Moons');
 unique(POWER_MOONS, 'name', 'Power Moons');
 unique(POWER_MOONS, 'flavour', 'Power Moons', true);
@@ -115,6 +116,7 @@ const assetPaths = [
   ...['cap', 'cascade', 'sand', 'wooded', 'lake', 'metro', 'snow', 'luncheon'].map((name) => `public/assets/kingdoms/${name}.webp`),
   ...['king-boo', 'slot-machine', 'symbol-pineapple', 'symbol-stu', 'symbol-boo'].map((name) => `public/assets/boo/${name}.webp`),
   'public/assets/shines/shine-sprite.webp', 'public/assets/shines/gloom-shine.webp',
+  'public/assets/audio/moon-get.mp3', 'public/assets/audio/multi-moon-get.mp3',
 ];
 for (const path of assetPaths) {
   try { await access(resolve(path)); } catch { failures.push(`Missing local asset: ${path}`); }

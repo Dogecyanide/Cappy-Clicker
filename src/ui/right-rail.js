@@ -54,7 +54,7 @@ export function createRightRail(root, store, options = {}) {
     if (moonButton) {
       let result;
       store.mutate('moon-purchase', (state) => { result = purchaseMoon(state, moonButton.dataset.buyMoon); });
-      if (result.ok) { options.audio?.moon(); options.onMoon?.(result); renderAll(true); }
+      if (result.ok) { options.audio?.moon(result.moon.isMulti); options.onMoon?.(result); renderAll(true); }
       else options.onError?.(result.reason);
       return;
     }
@@ -268,12 +268,17 @@ export function createRightRail(root, store, options = {}) {
 
   function renderCosmetics(state) {
     const panel = root.querySelector('[data-panel="style"]');
+    const base = import.meta.env.BASE_URL;
     panel.innerHTML = `<section class="rail-section"><div class="section-heading"><div><span class="eyebrow">Permanent coin-bought collection</span><h2>Cosmetics</h2></div><span class="count-pill">${state.cosmetics.owned.length}/${COSMETICS.length}</span></div>
       ${['cappy', 'backdrop', 'sound'].map((category) => `<h3 class="subheading">${({ cappy: 'Cappy styles', backdrop: 'Voyage backdrops', sound: 'Sound packs' })[category]}</h3><div class="cosmetic-grid">${COSMETICS.filter((item) => item.category === category).map((item) => {
         const owned = state.cosmetics.owned.includes(item.id);
         const equipped = state.cosmetics.equipped[category] === item.id;
         const affordable = state.coins.gte(item.cost);
-        return `<article class="cosmetic-card ${owned ? 'is-owned' : ''} ${equipped ? 'is-equipped' : ''}"><span class="cosmetic-preview cosmetic-preview--${item.value}">${item.preview}</span><div><h3>${escapeHtml(item.name)}</h3><p>${escapeHtml(item.description)}</p></div><button type="button" data-cosmetic-action="${item.id}" ${!owned && !affordable ? 'disabled' : ''}>${equipped ? 'Equipped' : owned ? 'Equip' : `Buy · ${format(item.cost)}`}</button></article>`;
+        const backdropFile = item.category === 'backdrop' ? (item.backdrop?.file ?? 'cascade.webp') : '';
+        const preview = backdropFile
+          ? `<span class="cosmetic-preview cosmetic-preview--image"><img src="${base}assets/kingdoms/${backdropFile}" alt="" loading="lazy" decoding="async"><b>${item.preview}</b></span>`
+          : `<span class="cosmetic-preview cosmetic-preview--${item.value}">${item.preview}</span>`;
+        return `<article class="cosmetic-card ${owned ? 'is-owned' : ''} ${equipped ? 'is-equipped' : ''}">${preview}<div><h3>${escapeHtml(item.name)}</h3><p>${escapeHtml(item.description)}</p></div><button type="button" data-cosmetic-action="${item.id}" ${!owned && !affordable ? 'disabled' : ''}>${equipped ? 'Equipped' : owned ? 'Equip' : `Buy · ${format(item.cost)}`}</button></article>`;
       }).join('')}</div>`).join('')}
     </section>`;
   }

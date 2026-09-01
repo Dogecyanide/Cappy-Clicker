@@ -140,7 +140,7 @@ export function parseRuntimeLimits(env = {}) {
   return {
     maxScoreLog10: boundedInteger(env.MAX_SCORE_LOG10, 1_000_000, 100, 10_000_000),
     maxProducers: boundedInteger(env.MAX_PRODUCERS, 40_000_000_000, 40, 40_000_000_000),
-    maxUpgrades: boundedInteger(env.MAX_UPGRADES, 460, 1, 100_000),
+    maxUpgrades: boundedInteger(env.MAX_UPGRADES, 480, 1, 100_000),
     maxAchievements: boundedInteger(env.MAX_ACHIEVEMENTS, 700, 1, 100_000),
     maxMoons: boundedInteger(env.MAX_MOONS, 50, 1, 10_000),
     maxPlaySeconds: boundedInteger(env.MAX_PLAY_SECONDS, 3_155_760_000, 86_400, 31_557_600_000),

@@ -15,7 +15,7 @@ import { getVisibleMoons, purchaseMoon } from '../src/systems/moons.js';
 describe('finite collections and authored content', () => {
   test('contains the complete Grand Tour collections', () => {
     expect(PRODUCERS).toHaveLength(40);
-    expect(BUILDING_UPGRADES).toHaveLength(460);
+    expect(BUILDING_UPGRADES).toHaveLength(480);
     expect(ACHIEVEMENTS).toHaveLength(700);
     expect(POWER_MOONS).toHaveLength(50);
     expect(COSMETICS).toHaveLength(21);
@@ -33,6 +33,16 @@ describe('finite collections and authored content', () => {
       expect(values.every((value) => typeof value === 'string' && value.trim())).toBe(true);
       expect(new Set(values).size).toBe(ACHIEVEMENTS.length);
     }
+  });
+
+  test('whole-tour badges require all forty destinations', () => {
+    expect(ACHIEVEMENTS.find(({ id }) => id === 'misc-one-each').condition.target).toBe(40);
+    expect(ACHIEVEMENTS.find(({ id }) => id === 'misc-all-discovered').condition.target).toBe(40);
+  });
+
+  test('workshop completion requires all 480 upgrades while keeping legacy badge ids', () => {
+    expect(ACHIEVEMENTS.find(({ id }) => id === 'upgrades-459').condition.target).toBe(470);
+    expect(ACHIEVEMENTS.find(({ id }) => id === 'upgrades-460').condition.target).toBe(480);
   });
 
   test('unlocks achievements from real state and records a timestamp', () => {
@@ -89,9 +99,9 @@ describe('finite collections and authored content', () => {
     for (const moon of multis) {
       expect(moon.effects.some(({ type, multiplier }) => type === 'global-multiplier' && multiplier >= 3)).toBe(true);
     }
-    for (const index of [9, 19, 29, 39, 49]) {
-      expect(D(POWER_MOONS[index].cost).div(POWER_MOONS[index - 1].cost).gte('1e5')).toBe(true);
-    }
+    for (const index of [9, 19]) expect(D(POWER_MOONS[index].cost).div(POWER_MOONS[index - 1].cost).gte('1e5')).toBe(true);
+    expect(D(POWER_MOONS[29].cost).div(POWER_MOONS[28].cost).gte(100)).toBe(true);
+    for (const index of [39, 49]) expect(D(POWER_MOONS[index].cost).div(POWER_MOONS[index - 1].cost).gte(5)).toBe(true);
   });
 
   test('the King Boo outcome probability table is complete and normalized', () => {
