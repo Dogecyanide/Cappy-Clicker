@@ -20,7 +20,6 @@ import { createRightRail } from './right-rail.js';
 import { createKingBooWidget } from './king-boo-widget.js';
 import { createShineWidget } from './shine-widget.js';
 import { createNotifications } from './notifications.js';
-import { createDevLab } from './dev-lab.js';
 import { createKingdomBackground } from '../visuals/background.js';
 
 export function createGame(root, dependencies = {}) {
@@ -28,6 +27,14 @@ export function createGame(root, dependencies = {}) {
   const base = import.meta.env.BASE_URL;
   root.innerHTML = appTemplate(base);
   installImageFallbacks(root);
+  const shell = {
+    coins: root.querySelector('[data-coins]'),
+    cps: root.querySelector('[data-cps]'),
+    badges: root.querySelector('[data-badges]'),
+    news: root.querySelector('[data-news-text]'),
+    saveIndicator: root.querySelector('[data-save-indicator]'),
+  };
+  let settingsSignature = '';
 
   const notifications = createNotifications(root.querySelector('[data-notifications]'));
   const audio = createAudio();
@@ -49,7 +56,6 @@ export function createGame(root, dependencies = {}) {
   const cappyStage = createCappyStage(root.querySelector('[data-cappy-stage]'), store, {
     audio: audioProxy(),
     onClick: (result) => {
-      if (result.critical) notifications.show(`+${format(result.amount)} coins`, { title: 'Critical toss!', icon: '✦', tone: 'success', duration: 1_800 });
       unlockNow();
     },
   });
@@ -80,6 +86,11 @@ export function createGame(root, dependencies = {}) {
       notifications.show(unchanged ? 'Already wearing this one.' : `${cosmetic.name} is now equipped.`, { title: 'Wardrobe updated', icon: cosmetic.preview, tone: 'success' });
       unlockNow(); persist('cosmetic');
     },
+    onFuel: ({ module }) => {
+      pushNews(store.state, `${module.name} is now bolted into the Odyssey. The warranty has quietly left the room.`);
+      notifications.show(module.effectLabel, { title: `${module.name} installed!`, icon: module.motif, tone: 'moon', duration: 6_000 });
+      unlockNow(); persist('fuel-module');
+    },
     leaderboard,
     onPersist: persist,
     onLeaderboardSubmit: () => notifications.show('Your latest score is on the friendly Open League board.', { title: 'Score submitted', icon: '🏁', tone: 'success' }),
@@ -104,13 +115,30 @@ export function createGame(root, dependencies = {}) {
     },
   });
   const background = createKingdomBackground(root.querySelector('[data-kingdom-backdrop]'), root.querySelector('[data-journey]'), store);
-  const devLab = createDevLab(root.querySelector('[data-dev-dialog]'), store, {
-    onChange: (action) => {
-      if (!['breakdown', 'dump', 'hard-reset'].includes(action)) store.state.integrity.devLabUsed = true;
-      unlockNow(); persist('dev'); rightRail.renderAll(true); buildingShop.renderStructure(true);
-    },
-    onHardReset: () => hardReset(true),
-  });
+  const devDialog = root.querySelector('[data-dev-dialog]');
+  let devLabPromise = null;
+
+  function loadDevLab() {
+    if (!devLabPromise) {
+      devLabPromise = import('./dev-lab.js').then(({ createDevLab }) => createDevLab(devDialog, store, {
+        onChange: (action) => {
+          if (!['breakdown', 'dump', 'hard-reset'].includes(action)) store.state.integrity.devLabUsed = true;
+          unlockNow(); persist('dev'); rightRail.renderAll(true); buildingShop.renderStructure(true);
+        },
+        onHardReset: () => hardReset(true),
+      }));
+    }
+    return devLabPromise;
+  }
+
+  async function openDevLab() {
+    try {
+      const devLab = await loadDevLab();
+      if (!devDialog.open) devLab.open();
+    } catch (error) {
+      showError(`The Developer Lab could not open: ${error.message}`);
+    }
+  }
 
   const loop = createGameLoop(store, {
     storage,
@@ -173,7 +201,7 @@ export function createGame(root, dependencies = {}) {
   }
 
   function updateSaveIndicator(at = Date.now()) {
-    const indicator = root.querySelector('[data-save-indicator]');
+    const indicator = shell.saveIndicator;
     indicator.textContent = `Saved ${new Date(at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
     indicator.classList.add('is-saved');
     window.setTimeout(() => indicator.classList.remove('is-saved'), 900);
@@ -181,10 +209,10 @@ export function createGame(root, dependencies = {}) {
 
   function update(state, reason) {
     const snapshot = getEconomySnapshot(state);
-    root.querySelector('[data-coins]').textContent = format(state.coins);
-    root.querySelector('[data-cps]').textContent = format(snapshot.totalCps);
-    root.querySelector('[data-badges]').textContent = `${Object.keys(state.achievements).length}/${ACHIEVEMENTS.length}`;
-    const news = root.querySelector('[data-news-text]');
+    setText(shell.coins, format(state.coins));
+    setText(shell.cps, format(snapshot.totalCps));
+    setText(shell.badges, `${Object.keys(state.achievements).length}/${ACHIEVEMENTS.length}`);
+    const news = shell.news;
     const currentNews = state.news[0]?.text ?? 'The Odyssey is fuelled, the passport is blank, and the first frog is negotiating.';
     if (news.textContent !== currentNews) { news.classList.remove('is-changing'); void news.offsetWidth; news.textContent = currentNews; news.classList.add('is-changing'); }
     cappyStage.update(state);
@@ -205,7 +233,7 @@ export function createGame(root, dependencies = {}) {
     root.addEventListener('click', (event) => {
       if (event.target.closest('[data-open-settings]')) openSettings();
       if (event.target.closest('[data-open-save]')) openSaveDesk();
-      if (event.target.closest('[data-open-dev]')) devLab.open();
+      if (event.target.closest('[data-open-dev]')) openDevLab();
       if (event.target.closest('[data-close-dialog]')) event.target.closest('dialog')?.close();
       if (event.target.closest('[data-export-save]')) exportCurrentSave();
       if (event.target.closest('[data-download-save]')) downloadCurrentSave();
@@ -216,6 +244,13 @@ export function createGame(root, dependencies = {}) {
     });
 
     root.querySelector('[data-save-file]').addEventListener('change', importSaveFile);
+
+    window.addEventListener('keydown', (event) => {
+      if (!event.shiftKey || event.key.toLowerCase() !== 'd' || event.repeat) return;
+      event.preventDefault();
+      if (devDialog.open) devDialog.close();
+      else openDevLab();
+    });
 
     const settingsDialog = root.querySelector('[data-settings-dialog]');
     settingsDialog.addEventListener('change', (event) => {
@@ -345,13 +380,19 @@ export function createGame(root, dependencies = {}) {
   }
 
   function applySettings(state) {
-    document.body.dataset.performance = state.settings.performance;
-    document.body.classList.toggle('force-reduced-motion', state.settings.reducedMotion);
-    document.body.classList.toggle('has-purple-curse', state.activeEffects.some((effect) => effect.type === 'purple-curse' && effect.expiresAt > Date.now()));
-    document.body.classList.toggle('has-banana', state.activeEffects.some((effect) => effect.type === 'cosmetic-banana' && effect.expiresAt > Date.now()));
+    const now = Date.now();
+    const cursed = state.activeEffects.some((effect) => effect.type === 'purple-curse' && effect.expiresAt > now);
+    const banana = state.activeEffects.some((effect) => effect.type === 'cosmetic-banana' && effect.expiresAt > now);
     const cappy = COSMETIC_BY_ID[state.cosmetics.equipped.cappy]?.value ?? 'classic';
     const backdrop = COSMETIC_BY_ID[state.cosmetics.equipped.backdrop]?.value ?? 'postcard';
     const sound = COSMETIC_BY_ID[state.cosmetics.equipped.sound]?.value ?? 'classic';
+    const nextSignature = [state.settings.performance, state.settings.reducedMotion, cappy, backdrop, sound, cursed, banana].join('|');
+    if (nextSignature === settingsSignature) return;
+    settingsSignature = nextSignature;
+    document.body.dataset.performance = state.settings.performance;
+    document.body.classList.toggle('force-reduced-motion', state.settings.reducedMotion);
+    document.body.classList.toggle('has-purple-curse', cursed);
+    document.body.classList.toggle('has-banana', banana);
     document.body.dataset.cappyStyle = cappy;
     document.body.dataset.backdropStyle = backdrop;
     document.body.dataset.soundStyle = sound;
@@ -403,7 +444,7 @@ function appTemplate(base) {
         <div class="stage-ticket"><span>Tip</span><p>Press <kbd>Space</kbd> anywhere outside a text box, or focus Cappy and press Enter.</p></div>
       </section>
       <section class="producer-shop" aria-labelledby="shop-title"><header class="shop-heading"><div><span class="eyebrow">Crazy Cap travel desk</span><h2 id="shop-title">Kingdom Producers</h2><p>Only destinations you have discovered appear here. Every number is the actual effective rate.</p></div><span class="shop-sticker">BUY<br>SMART-ISH</span></header><div class="producer-list" data-producer-list></div></section>
-      <aside class="right-rail" data-right-rail><nav class="rail-tabs" role="tablist" aria-label="Collections"><button type="button" role="tab" data-tab="upgrades">Upgrades</button><button type="button" role="tab" data-tab="moons">Moons</button><button type="button" role="tab" data-tab="achievements">Badges</button><button type="button" role="tab" data-tab="style">Style</button><button type="button" role="tab" data-tab="voyage">Voyage</button><button type="button" role="tab" data-tab="ranks">Ranks</button></nav><div class="rail-panel" data-panel="upgrades"></div><div class="rail-panel" data-panel="moons" hidden></div><div class="rail-panel" data-panel="achievements" hidden></div><div class="rail-panel" data-panel="style" hidden></div><div class="rail-panel" data-panel="voyage" hidden></div><div class="rail-panel" data-panel="ranks" hidden></div></aside>
+      <aside class="right-rail" data-right-rail><nav class="rail-tabs" role="tablist" aria-label="Collections"><button type="button" role="tab" data-tab="upgrades">Upgrades</button><button type="button" role="tab" data-tab="moons">Moons</button><button type="button" role="tab" data-tab="achievements">Badges</button><button type="button" role="tab" data-tab="fuel">Fuel</button><button type="button" role="tab" data-tab="style">Style</button><button type="button" role="tab" data-tab="voyage">Voyage</button><button type="button" role="tab" data-tab="ranks">Ranks</button></nav><div class="rail-panel" data-panel="upgrades"></div><div class="rail-panel" data-panel="moons" hidden></div><div class="rail-panel" data-panel="achievements" hidden></div><div class="rail-panel" data-panel="fuel" hidden></div><div class="rail-panel" data-panel="style" hidden></div><div class="rail-panel" data-panel="voyage" hidden></div><div class="rail-panel" data-panel="ranks" hidden></div></aside>
     </main>
     <section class="journey" data-journey aria-label="Kingdom journey progress"></section>
     <footer class="site-footer"><span>A personal, non-commercial fan project.</span><button type="button" data-open-dev title="Developer Lab is also available with Shift+D">Lab</button><span>Not affiliated with Nintendo.</span></footer>
@@ -428,6 +469,10 @@ function saveDialog() {
 
 function offlineDialog() {
   return `<form method="dialog" class="dialog-card offline-dialog"><div class="offline-moon">☾</div><span class="eyebrow">Welcome back, captain</span><h2>The crew kept working.</h2><div class="offline-summary"><div><span>Time away</span><b data-away-time>—</b></div><div><span>Coins earned</span><b data-offline-earned>—</b></div><div><span>Average CPS</span><b data-offline-cps>—</b></div><div><span>Current cap</span><b data-offline-cap>—</b></div></div><p>No King Boo encounters were generated while the game was closed. Even he has office hours.</p><button value="close">Collect and continue</button></form>`;
+}
+
+function setText(element, value) {
+  if (element.textContent !== value) element.textContent = value;
 }
 
 function duration(seconds) {

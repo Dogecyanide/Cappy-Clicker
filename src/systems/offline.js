@@ -1,5 +1,6 @@
 import { D } from '../core/numbers.js';
 import { getEconomySnapshot, getMoonBonuses } from '../core/economy.js';
+import { getFuelProfile } from './fuel.js';
 
 export function calculateOfflineEarnings(state, now = Date.now()) {
   const startedAt = Number(state.lastSaveAt || now);
@@ -32,7 +33,7 @@ export function calculateEarningsBetween(state, startedAt, now = Date.now()) {
 }
 
 export function getOfflineCapHours(state) {
-  return Math.min(24, Math.max(0, getMoonBonuses(state).offlineHours));
+  return Math.min(24, Math.max(0, getMoonBonuses(state).offlineHours + getFuelProfile(state).bonuses.offlineHours));
 }
 
 export function applyOfflineEarnings(state, report) {

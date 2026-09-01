@@ -7,10 +7,12 @@ import { addTimedEffect } from './king-boo.js';
 export function spawnShine(state, options = {}) {
   const now = options.now ?? Date.now();
   const random = options.random ?? Math.random;
-  if (state.shine.visibleUntil > now) return false;
+  if (state.shine.visibleUntil > now && !options.replace) return false;
   const snapshot = getEconomySnapshot(state, { now });
   const profile = getClickProfile(state, { now, snapshot });
-  state.shine.kind = random() < 0.07 ? 'corrupted' : 'normal';
+  state.shine.kind = options.kind === 'corrupted' || options.kind === 'normal'
+    ? options.kind
+    : random() < 0.07 ? 'corrupted' : 'normal';
   state.shine.spawnedAt = now;
   state.shine.visibleUntil = now + (18 + profile.shineDuration) * 1000;
   state.stats.shinesSeen += 1;
@@ -41,11 +43,19 @@ export function claimShine(state, options = {}) {
   if (state.shine.visibleUntil <= now) return { ok: false, reason: 'That Shine already slipped away.' };
   const kind = state.shine.kind;
   const choices = SHINE_OUTCOMES.filter((outcome) => outcome.kind === kind);
-  let roll = random() * choices.reduce((total, outcome) => total + outcome.probability, 0);
-  let outcome = choices[choices.length - 1];
-  for (const candidate of choices) {
-    roll -= candidate.probability;
-    if (roll <= 0) { outcome = candidate; break; }
+  let outcome = options.outcomeId
+    ? choices.find((candidate) => candidate.id === options.outcomeId)
+    : null;
+  if (options.outcomeId && !outcome) {
+    return { ok: false, reason: 'That result does not belong to the visible Shine.' };
+  }
+  if (!outcome) {
+    let roll = random() * choices.reduce((total, candidate) => total + candidate.probability, 0);
+    outcome = choices[choices.length - 1];
+    for (const candidate of choices) {
+      roll -= candidate.probability;
+      if (roll <= 0) { outcome = candidate; break; }
+    }
   }
   const snapshot = getEconomySnapshot(state, { now });
   const profile = getClickProfile(state, { now, snapshot });
@@ -58,6 +68,14 @@ export function claimShine(state, options = {}) {
   state.shine.spawnedAt = 0;
   state.shine.nextSpawnAt = now + randomShineDelay(random);
   return { ok: true, kind, outcome, ...result };
+}
+
+export function forceShineOutcome(state, outcomeId, options = {}) {
+  const outcome = SHINE_OUTCOMES.find((candidate) => candidate.id === outcomeId);
+  if (!outcome) return { ok: false, reason: 'Unknown Shine result.' };
+  const now = options.now ?? Date.now();
+  spawnShine(state, { now, kind: outcome.kind, replace: true });
+  return claimShine(state, { now, outcomeId, random: options.random });
 }
 
 function applyShineEffect(state, outcome, context) {

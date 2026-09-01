@@ -7,6 +7,7 @@ import { POWER_MOON_BY_ID } from '../data/power-moons.js';
 import { BOO_OUTCOME_BY_ID } from '../data/boo-outcomes.js';
 import { SHINE_OUTCOME_BY_ID } from '../data/shine-outcomes.js';
 import { COSMETIC_BY_ID, DEFAULT_COSMETICS, DEFAULT_EQUIPPED_COSMETICS } from '../data/cosmetics.js';
+import { FUEL_MODULE_BY_ID } from '../data/fuel-modules.js';
 
 export const SAVE_KEY = 'cappy-clicker-v2';
 
@@ -43,6 +44,7 @@ export function deserializeState(serialized, now = Date.now()) {
   }
 
   state.upgrades = uniqueArray(raw.upgrades).filter((id) => BUILDING_UPGRADE_BY_ID[id]);
+  state.fuelModules = uniqueArray(raw.fuelModules).filter((id) => FUEL_MODULE_BY_ID[id]);
   state.moons = uniqueArray(raw.moons).filter((id) => POWER_MOON_BY_ID[id]);
   state.cosmetics = sanitizeCosmetics(raw.cosmetics);
   const carriedDiscoveries = new Set(uniqueArray(raw.discoveredProducers).filter((id) => state.producers[id] !== undefined));

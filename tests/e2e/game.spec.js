@@ -131,6 +131,29 @@ test('triple-Boo catastrophe charges once and its curse survives reload', async 
   expect(errors).toEqual([]);
 });
 
+test('Developer Lab can preview both Shines and apply an exact outcome', async ({ page }) => {
+  const errors = watchRuntimeErrors(page);
+  await freshGame(page);
+
+  await openLab(page);
+  await page.locator('[data-dev="shine-normal"]').click();
+  await closeLab(page);
+  await expect(page.locator('.shine-widget')).toHaveClass(/is-visible/);
+  await expect(page.locator('.shine-target')).not.toHaveClass(/is-corrupted/);
+
+  await openLab(page);
+  await page.locator('[data-dev="shine-gloom"]').click();
+  await closeLab(page);
+  await expect(page.locator('.shine-target')).toHaveClass(/is-corrupted/);
+
+  await openLab(page);
+  await page.locator('[name="shine"]').selectOption('gloom-toll');
+  await page.locator('[data-dev="shine-force"]').click();
+  await expect(page.locator('[data-dev-output]')).toContainText('Gloom Toll');
+  await expect.poll(() => page.evaluate(() => window.cappyClicker.store.state.stats.shineOutcomeCounts['gloom-toll'])).toBe(1);
+  expect(errors).toEqual([]);
+});
+
 test('mobile and ultrawide layouts avoid overflow and use the available canvas', async ({ page }) => {
   const errors = watchRuntimeErrors(page);
   await page.setViewportSize({ width: 320, height: 812 });

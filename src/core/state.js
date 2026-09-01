@@ -11,6 +11,7 @@ export function createInitialState(now = Date.now()) {
     lifetimeCoins: D(0),
     producers: Object.fromEntries(PRODUCERS.map(({ id }) => [id, 0])),
     upgrades: [],
+    fuelModules: [],
     achievements: {},
     moons: [],
     cosmetics: {
@@ -70,6 +71,7 @@ export function createInitialState(now = Date.now()) {
       cosmeticsPurchased: 0,
       cosmeticSwaps: 0,
       leaderboardSubmissions: 0,
+      fuelModulesPurchased: 0,
     },
     combo: { count: 0, lastClickAt: 0 },
     boo: {

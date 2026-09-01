@@ -1,6 +1,6 @@
 # Cappy Clicker
 
-Cappy Clicker is a colorful, globe-trotting incremental browser game inspired by Mario's many adventures. Toss Cappy for Kingdom Coins, build a 40-stop Grand Tour that deliberately mixes destinations from different Mario series from the beginning, collect finite Power Moons and rare Shines, fill a 700-stamp passport, and decide whether King Boo's definitely-legitimate casino is worth the risk.
+Cappy Clicker is a colorful, globe-trotting incremental browser game inspired by Mario's many adventures. Toss Cappy for Kingdom Coins, build a 40-stop Grand Tour that deliberately mixes destinations from different Mario series from the beginning, collect finite Power Moons and rare Shines, distil the whole trip into Odyssey Fuel, fill a 700-stamp passport, and decide whether King Boo's definitely-legitimate casino is worth the risk.
 
 This is a personal, non-commercial fan project. It is not affiliated with or endorsed by Nintendo.
 
@@ -30,9 +30,10 @@ npm run test:e2e
 
 ## Game systems
 
-- 40 progressively discovered producer destinations with Buy 1/10/25/100/Max controls. The route interleaves *Odyssey*, *Super Mario 64*, *Sunshine*, *3D World*, *Galaxy*, *Mario Kart*, *Paper Mario*, *Yoshi's Island*, *Mario & Luigi*, and *Luigi's Mansion* instead of completing one game at a time.
-- 460 permanent upgrades: eleven varied milestones for every destination at 5, 15, 25, 50, 100, 150, 200, 350, 500, 750, and 1,000 owned, plus twenty Cappy techniques. Effects include production boosts, discounts, neighbouring-route fusions, series bonuses, click improvements, and Shine modifiers.
+- 40 progressively discovered producer destinations with Buy 1/10/25/100/Max controls. Each card builds a miniature district from that destination's real local artwork and divides huge ownership totals into exact labelled groups. The route interleaves *Odyssey*, *Super Mario 64*, *Sunshine*, *3D World*, *Galaxy*, *Mario Kart*, *Paper Mario*, *Yoshi's Island*, *Mario & Luigi*, and *Luigi's Mansion* instead of completing one game at a time.
+- 460 permanent upgrades: eleven varied milestones for every destination at 5, 15, 25, 50, 100, 150, 200, 350, 500, 750, and 1,000 owned, plus twenty Cappy techniques. Every producer milestone has its own authored name and flavour text. Effects include production boosts, discounts, neighbouring-route fusions, series bonuses, click improvements, and Shine modifiers.
 - 700 authored achievements across ten categories. Each badge adds +0.02% additive production, reaching the +14% cap only when the passport is complete.
+- Odyssey Fuel, a permanent achievement-style tank blended from badges, Moons, Multi Moons, discovered routes, upgrades, and caught Shines. Fuel is never spent; ten coin-bought engine modules make its fill scale production, prices, clicking, offline time, fusions, and Shine payouts.
 - 50 finite, one-time Power Moons bought with current coins. Moons 10, 20, 30, 40, and 50 are Multi Moons with a much steeper price step and a much larger permanent reward; Moons never reset progress.
 - Rare clickable Shines appear during active play with six beneficial outcomes. Seven percent are cracked purple Gloom Shines with three risky outcomes instead.
 - 21 permanent cosmetics across Cappy styles, voyage backdrops, and synthesized sound packs.
@@ -42,7 +43,8 @@ npm run test:e2e
 - Readable short-scale names extend through centillion, with scientific notation used beyond the named range.
 - An optional, self-reported Open League for lifetime coins and CPS. The game works without it; a genuinely shared board requires deploying and configuring the included backend.
 - Responsive travel-brochure presentation, kingdom backdrops, a journey strip, capped canvas particles, reduced-motion and performance modes, synthesized WebAudio, and image fallbacks.
-- A Developer Lab for exact economy, collection, producer, save, and King Boo testing. Open it from the footer or press Shift+D.
+- Hidden collection panels and the Developer Lab load only when opened, destination rendering is cached, and local art decodes asynchronously for a faster first usable frame.
+- A Developer Lab for exact economy, collection, producer, save, King Boo, normal Shine, Gloom Shine, and deterministic Shine-outcome testing. Open it from the footer or press Shift+D.
 
 ## Architecture
 
@@ -61,7 +63,7 @@ public/assets/  optimized local runtime art
 worker/leaderboard/  optional Cloudflare Worker, D1 migration, validation, and tests
 ```
 
-`getEconomySnapshot()` is the single production pipeline. The game loop, click value, offline earnings, producer cards, stats, Developer Lab, Power Moon tests, King Boo and Shine payouts, and Open League score payloads all consume that same snapshot. It reports base and effective per-unit rates, ownership, local upgrades, additive globals, Moon modifiers, temporary multipliers, disabled state, effective totals, and CPS contribution.
+`getEconomySnapshot()` is the single production pipeline. The game loop, click value, offline earnings, producer cards, stats, Developer Lab, Power Moon tests, Odyssey Fuel, King Boo and Shine payouts, and Open League score payloads all consume that same snapshot. It reports base and effective per-unit rates, ownership, local upgrades, additive globals, Moon and Fuel modifiers, temporary multipliers, disabled state, effective totals, and CPS contribution.
 
 Big-number arithmetic uses the bundled `break_infinity.js` dependency behind `src/core/numbers.js`; no CDN is used. The word formatter constructs short-scale names through centillion and falls back to scientific notation for still-larger values.
 

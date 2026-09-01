@@ -2,6 +2,7 @@ import { D, Decimal, sum } from './numbers.js';
 import { PRODUCERS, PRODUCER_BY_ID, PRODUCER_GROWTH } from '../data/buildings.js';
 import { BUILDING_UPGRADE_BY_ID } from '../data/building-upgrades.js';
 import { POWER_MOON_BY_ID } from '../data/power-moons.js';
+import { getFuelProfile } from '../systems/fuel.js';
 
 const nowFrom = (context) => context?.now ?? Date.now();
 
@@ -65,7 +66,7 @@ export function getMoonBonuses(state) {
   return bonuses;
 }
 
-export function getUpgradeBonuses(state, moonBonuses = getMoonBonuses(state)) {
+export function getUpgradeBonuses(state, moonBonuses = getMoonBonuses(state), fuelBonuses = getFuelProfile(state).bonuses) {
   const bonuses = {
     producerMultipliers: {},
     producerDiscounts: {},
@@ -94,7 +95,7 @@ export function getUpgradeBonuses(state, moonBonuses = getMoonBonuses(state)) {
         bonuses.seriesMultipliers[effect.series] = (bonuses.seriesMultipliers[effect.series] ?? 1) * effect.multiplier;
       }
       if (effect.type === 'fusion') {
-        const multiplier = 1 + (effect.multiplier - 1) * moonBonuses.fusionMultiplier;
+        const multiplier = 1 + (effect.multiplier - 1) * moonBonuses.fusionMultiplier * fuelBonuses.fusionMultiplier;
         bonuses.fusionMultipliers[effect.producerId] = (bonuses.fusionMultipliers[effect.producerId] ?? 1) * multiplier;
         bonuses.fusionMultipliers[effect.partnerId] = (bonuses.fusionMultipliers[effect.partnerId] ?? 1) * multiplier;
       }
@@ -123,8 +124,10 @@ export function getPriceMultiplier(state, producerId, context = {}) {
     }
   }
   const moonBonuses = context.moonBonuses ?? getMoonBonuses(state);
-  const upgradeBonuses = context.upgradeBonuses ?? getUpgradeBonuses(state, moonBonuses);
-  const permanentDiscount = moonBonuses.priceDiscount + (upgradeBonuses.producerDiscounts[producerId] ?? 0);
+  const fuelProfile = context.fuelProfile ?? getFuelProfile(state);
+  const fuelBonuses = context.fuelBonuses ?? fuelProfile.bonuses;
+  const upgradeBonuses = context.upgradeBonuses ?? getUpgradeBonuses(state, moonBonuses, fuelBonuses);
+  const permanentDiscount = moonBonuses.priceDiscount + fuelBonuses.priceDiscount + (upgradeBonuses.producerDiscounts[producerId] ?? 0);
   return Math.max(0.55, multiplier * (1 - Math.min(0.45, permanentDiscount)));
 }
 
@@ -149,12 +152,15 @@ export function getProducerBreakdown(state, producerId, context = {}) {
   const now = nowFrom(context);
   const owned = getOwned(state, producerId);
   const moonBonuses = context.moonBonuses ?? getMoonBonuses(state);
-  const upgradeBonuses = context.upgradeBonuses ?? getUpgradeBonuses(state, moonBonuses);
+  const fuelProfile = context.fuelProfile ?? getFuelProfile(state);
+  const fuelBonuses = context.fuelBonuses ?? fuelProfile.bonuses;
+  const upgradeBonuses = context.upgradeBonuses ?? getUpgradeBonuses(state, moonBonuses, fuelBonuses);
   const upgradeCount = (state.upgrades ?? []).filter((id) => BUILDING_UPGRADE_BY_ID[id]?.producerId === producerId).length;
   const localMultiplier = D(upgradeBonuses.producerMultipliers[producerId] ?? 1);
-  const achievementAdditive = Math.min(0.14, Object.keys(state.achievements ?? {}).length * 0.0002);
-  let globalAdditive = achievementAdditive + moonBonuses.globalAdditive + upgradeBonuses.globalAdditive;
-  let globalMultiplier = moonBonuses.globalMultiplier;
+  const achievementCount = context.achievementCount ?? Object.keys(state.achievements ?? {}).length;
+  const achievementAdditive = Math.min(0.14, achievementCount * 0.0002);
+  let globalAdditive = achievementAdditive + moonBonuses.globalAdditive + upgradeBonuses.globalAdditive + fuelBonuses.globalAdditive;
+  let globalMultiplier = moonBonuses.globalMultiplier * fuelBonuses.globalMultiplier;
   let temporaryMultiplier = 1;
   let producerMultiplier = (moonBonuses.groupMultipliers[producerId] ?? 1)
     * (upgradeBonuses.seriesMultipliers[producer.series] ?? 1)
@@ -184,15 +190,17 @@ export function getProducerBreakdown(state, producerId, context = {}) {
 
 export function getEconomySnapshot(state, context = {}) {
   const moonBonuses = context.moonBonuses ?? getMoonBonuses(state);
-  const upgradeBonuses = context.upgradeBonuses ?? getUpgradeBonuses(state, moonBonuses);
-  const shared = { ...context, moonBonuses, upgradeBonuses };
+  const fuelProfile = context.fuelProfile ?? getFuelProfile(state);
+  const fuelBonuses = context.fuelBonuses ?? fuelProfile.bonuses;
+  const upgradeBonuses = context.upgradeBonuses ?? getUpgradeBonuses(state, moonBonuses, fuelBonuses);
+  const shared = { ...context, moonBonuses, fuelProfile, fuelBonuses, upgradeBonuses, achievementCount: fuelProfile.achievementCount };
   const producers = PRODUCERS.map(({ id }) => getProducerBreakdown(state, id, shared));
   const totalCps = sum(producers.map(({ effectiveTotal }) => effectiveTotal));
   for (const breakdown of producers) {
     breakdown.contribution = totalCps.gt(0) ? breakdown.effectiveTotal.div(totalCps).mul(100).toNumber() : 0;
   }
   return {
-    totalCps, producers, moonBonuses, upgradeBonuses,
+    totalCps, producers, moonBonuses, fuelProfile, fuelBonuses, upgradeBonuses,
     byId: Object.fromEntries(producers.map((item) => [item.producer.id, item])),
   };
 }
@@ -200,8 +208,9 @@ export function getEconomySnapshot(state, context = {}) {
 export function getClickProfile(state, context = {}) {
   const snapshot = context.snapshot ?? getEconomySnapshot(state, context);
   const moonBonuses = snapshot.moonBonuses;
+  const fuelBonuses = snapshot.fuelBonuses ?? getFuelProfile(state).bonuses;
   const upgradeBonuses = snapshot.upgradeBonuses;
-  let flatMultiplier = moonBonuses.flatClickMultiplier * upgradeBonuses.flatClickMultiplier;
+  let flatMultiplier = moonBonuses.flatClickMultiplier * fuelBonuses.flatClickMultiplier * upgradeBonuses.flatClickMultiplier;
   let assistMultiplier = 1;
   for (const effect of activeEffects(state, nowFrom(context))) {
     if (effect.type === 'click-multiplier') {
@@ -221,7 +230,7 @@ export function getClickProfile(state, context = {}) {
     criticalMultiplier: upgradeBonuses.criticalMultiplier,
     comboWindow: upgradeBonuses.comboWindow,
     shineDuration: upgradeBonuses.shineDuration,
-    shinePayout: moonBonuses.shinePayout * upgradeBonuses.shinePayout,
+    shinePayout: moonBonuses.shinePayout * fuelBonuses.shinePayout * upgradeBonuses.shinePayout,
   };
 }
 

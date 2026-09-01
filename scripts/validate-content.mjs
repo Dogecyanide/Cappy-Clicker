@@ -1,12 +1,13 @@
 import { access, readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { PRODUCERS, PRODUCER_BY_ID } from '../src/data/buildings.js';
-import { BUILDING_UPGRADES } from '../src/data/building-upgrades.js';
+import { BUILDING_UPGRADES, MILESTONES } from '../src/data/building-upgrades.js';
 import { ACHIEVEMENTS, ACHIEVEMENT_CATEGORY_COUNTS, CONDITION_TYPES } from '../src/data/achievements.js';
 import { POWER_MOONS, POWER_MOON_BY_ID } from '../src/data/power-moons.js';
 import { BOO_OUTCOMES, BOO_PROBABILITY_TOTAL } from '../src/data/boo-outcomes.js';
 import { SHINE_OUTCOMES } from '../src/data/shine-outcomes.js';
 import { COSMETICS } from '../src/data/cosmetics.js';
+import { FUEL_MODULES } from '../src/data/fuel-modules.js';
 
 const failures = [];
 const check = (condition, message) => { if (!condition) failures.push(message); };
@@ -18,11 +19,31 @@ function unique(items, field, label, normalize = false) {
   check(values.every(Boolean), `${label} must not have empty ${field} values.`);
 }
 
+function rejectSharedPhrases(items, field, label, phraseLength = 7) {
+  const ownerByPhrase = new Map();
+  for (const item of items) {
+    const words = normalized(item[field]).split(' ').filter(Boolean);
+    const phrasesInItem = new Set();
+    for (let index = 0; index <= words.length - phraseLength; index += 1) {
+      phrasesInItem.add(words.slice(index, index + phraseLength).join(' '));
+    }
+    for (const phrase of phrasesInItem) {
+      const owner = ownerByPhrase.get(phrase);
+      if (owner && owner !== item.id) {
+        failures.push(`${label} ${owner} and ${item.id} repeat “${phrase}”.`);
+      } else {
+        ownerByPhrase.set(phrase, item.id);
+      }
+    }
+  }
+}
+
 check(PRODUCERS.length === 40, `Expected 40 producers, found ${PRODUCERS.length}.`);
 check(BUILDING_UPGRADES.length === 460, `Expected 460 permanent upgrades, found ${BUILDING_UPGRADES.length}.`);
 check(ACHIEVEMENTS.length === 700, `Expected 700 achievements, found ${ACHIEVEMENTS.length}.`);
 check(POWER_MOONS.length === 50, `Expected 50 Power Moons, found ${POWER_MOONS.length}.`);
 check(COSMETICS.length === 21, `Expected 21 cosmetics, found ${COSMETICS.length}.`);
+check(FUEL_MODULES.length === 10, `Expected 10 Odyssey Fuel modules, found ${FUEL_MODULES.length}.`);
 check(POWER_MOONS.filter(({ isMulti }) => isMulti).length === 5, 'Expected a Multi Moon at every tenth Moon.');
 check(POWER_MOONS.every((moon, index) => Boolean(moon.isMulti) === ((index + 1) % 10 === 0)), 'Multi Moons must be numbers 10, 20, 30, 40, and 50.');
 check(Math.abs(BOO_PROBABILITY_TOTAL - 1) < 1e-10, `King Boo probabilities total ${BOO_PROBABILITY_TOTAL}, not 1.`);
@@ -37,6 +58,7 @@ unique(PRODUCERS, 'description', 'Producers', true);
 unique(BUILDING_UPGRADES, 'id', 'Upgrades');
 unique(BUILDING_UPGRADES, 'name', 'Upgrades');
 unique(BUILDING_UPGRADES, 'flavour', 'Upgrades', true);
+rejectSharedPhrases(BUILDING_UPGRADES, 'flavour', 'Upgrade flavour');
 unique(ACHIEVEMENTS, 'id', 'Achievements');
 unique(ACHIEVEMENTS, 'name', 'Achievements');
 unique(ACHIEVEMENTS, 'flavour', 'Achievements', true);
@@ -52,6 +74,9 @@ unique(SHINE_OUTCOMES, 'description', 'Shine outcomes', true);
 unique(COSMETICS, 'id', 'Cosmetics');
 unique(COSMETICS, 'name', 'Cosmetics');
 unique(COSMETICS, 'description', 'Cosmetics', true);
+unique(FUEL_MODULES, 'id', 'Odyssey Fuel modules');
+unique(FUEL_MODULES, 'name', 'Odyssey Fuel modules');
+unique(FUEL_MODULES, 'flavour', 'Odyssey Fuel modules', true);
 
 for (const [category, expected] of Object.entries(ACHIEVEMENT_CATEGORY_COUNTS)) {
   const actual = ACHIEVEMENTS.filter((achievement) => achievement.category === category).length;
@@ -61,6 +86,15 @@ for (const [category, expected] of Object.entries(ACHIEVEMENT_CATEGORY_COUNTS)) 
 for (const upgrade of BUILDING_UPGRADES) {
   if (upgrade.producerId) check(Boolean(PRODUCER_BY_ID[upgrade.producerId]), `Upgrade ${upgrade.id} references missing producer ${upgrade.producerId}.`);
   else check(upgrade.track === 'technique', `Upgrade ${upgrade.id} has no producer and is not a Cappy technique.`);
+}
+for (const producer of PRODUCERS) {
+  const milestones = BUILDING_UPGRADES
+    .filter(({ producerId }) => producerId === producer.id)
+    .map(({ milestone }) => milestone);
+  check(
+    milestones.length === MILESTONES.length && MILESTONES.every((milestone) => milestones.includes(milestone)),
+    `${producer.name} must have authored copy for every producer milestone.`,
+  );
 }
 for (const moon of POWER_MOONS) {
   for (const effect of moon.effects ?? [moon.effect]) {
@@ -102,6 +136,7 @@ if (failures.length) {
   console.log(`  Achievements: ${ACHIEVEMENTS.length}`);
   console.log(`  Power Moons: ${POWER_MOONS.length}`);
   console.log(`  Cosmetics: ${COSMETICS.length}`);
+  console.log(`  Odyssey Fuel modules: ${FUEL_MODULES.length}`);
   console.log(`  Shine outcomes: ${SHINE_OUTCOMES.length}`);
   console.log(`  King Boo outcomes: ${BOO_OUTCOMES.length}`);
   console.log(`  Local assets checked: ${assetPaths.length}`);

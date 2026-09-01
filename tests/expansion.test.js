@@ -5,7 +5,7 @@ import { D, format, shortScaleName } from '../src/core/numbers.js';
 import { deserializeState, serializeState } from '../src/core/save.js';
 import { COSMETICS } from '../src/data/cosmetics.js';
 import { purchaseCosmetic, equipCosmetic } from '../src/systems/cosmetics.js';
-import { claimShine, spawnShine } from '../src/systems/shines.js';
+import { claimShine, forceShineOutcome, spawnShine } from '../src/systems/shines.js';
 
 describe('Grand Tour expansion systems', () => {
   test('names large numbers through centillion before falling back to scientific notation', () => {
@@ -48,6 +48,16 @@ describe('Grand Tour expansion systems', () => {
     expect(result).toMatchObject({ ok: true, kind: 'corrupted', loss: '30' });
     expect(state.coins.eq(970)).toBe(true);
     expect(state.stats.corruptedShines).toBe(1);
+  });
+
+  test('the Developer Lab can force every exact Shine result deterministically', () => {
+    const state = createInitialState(1_000);
+    state.coins = D(1_000);
+    const result = forceShineOutcome(state, 'gloom-toll', { now: 2_000, random: () => 0.5 });
+    expect(result).toMatchObject({ ok: true, kind: 'corrupted', outcome: { id: 'gloom-toll' }, loss: '30' });
+    expect(state.stats.shinesSeen).toBe(1);
+    expect(state.stats.shinesClaimed).toBe(1);
+    expect(state.stats.shineOutcomeCounts['gloom-toll']).toBe(1);
   });
 
   test('cosmetics cost current coins, remain owned, and equip by category', () => {

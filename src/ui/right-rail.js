@@ -9,6 +9,9 @@ import { getAvailableUpgrades, getInstalledUpgradeGroups, purchaseUpgrade } from
 import { getVisibleMoons, purchaseMoon } from '../systems/moons.js';
 import { getAchievementFraction, getAchievementProgress } from '../systems/achievements.js';
 import { equipCosmetic, purchaseCosmetic } from '../systems/cosmetics.js';
+import { FUEL_MODULES } from '../data/fuel-modules.js';
+import { getFuelProfile, purchaseFuelModule } from '../systems/fuel.js';
+import { fuelPanelHtml } from './fuel-panel.js';
 
 const CATEGORY_LABELS = {
   producer_ownership: 'Producer Stamps', economy: 'Coin & CPS', clicking: 'Cappy Tosses', upgrades: 'Workshop',
@@ -16,14 +19,16 @@ const CATEGORY_LABELS = {
   cosmetics: 'Wardrobe', misc: 'Oddities',
 };
 const ACHIEVEMENT_PAGE_SIZE = 40;
+const UPGRADE_PAGE_SIZE = 30;
 
 export function createRightRail(root, store, options = {}) {
   const tabs = [...root.querySelectorAll('[data-tab]')];
   const panels = [...root.querySelectorAll('[data-panel]')];
   let active = 'upgrades';
+  let upgradePage = 0;
   let achievementCategory = 'producer_ownership';
   let achievementPage = 0;
-  let renderKey = '';
+  const renderKeys = new Map();
   let leaderboardMetric = 'lifetime';
   let leaderboardState = {
     loading: false,
@@ -66,11 +71,25 @@ export function createRightRail(root, store, options = {}) {
       else options.onError?.(result.reason);
       return;
     }
+    const fuelButton = event.target.closest('[data-buy-fuel]');
+    if (fuelButton) {
+      let result;
+      store.mutate('fuel-module-purchase', (state) => { result = purchaseFuelModule(state, fuelButton.dataset.buyFuel); });
+      if (result.ok) { options.audio?.purchase(); options.onFuel?.(result); renderAll(true); }
+      else options.onError?.(result.reason);
+      return;
+    }
     const categoryButton = event.target.closest('[data-achievement-category]');
     if (categoryButton) {
       achievementCategory = categoryButton.dataset.achievementCategory;
       achievementPage = 0;
       renderAchievements(store.state);
+      return;
+    }
+    const upgradePageButton = event.target.closest('[data-upgrade-page]');
+    if (upgradePageButton) {
+      upgradePage = Math.max(0, upgradePage + Number(upgradePageButton.dataset.upgradePage));
+      renderUpgrades(store.state);
       return;
     }
     const achievementPageButton = event.target.closest('[data-achievement-page]');
@@ -95,6 +114,7 @@ export function createRightRail(root, store, options = {}) {
   });
 
   function setTab(name) {
+    if (!panels.some((panel) => panel.dataset.panel === name)) return;
     active = name;
     for (const tab of tabs) {
       const selected = tab.dataset.tab === name;
@@ -103,40 +123,70 @@ export function createRightRail(root, store, options = {}) {
     }
     for (const panel of panels) panel.hidden = panel.dataset.panel !== name;
     options.onTab?.(name);
+    renderAll(true);
     if (name === 'ranks' && !leaderboardState.loaded && !leaderboardState.loading) refreshLeaderboard();
   }
 
   function renderAll(force = false) {
     const state = store.state;
-    const availableUpgrades = getAvailableUpgrades(state);
-    const visibleMoons = getVisibleMoons(state);
-    const key = [
-      state.upgrades.length, state.moons.length, state.cosmetics.owned.length,
-      Object.keys(state.achievements).length, state.discoveredProducers.length, state.boo.history.length,
-      state.settings.leaderboardName, active, achievementCategory, achievementPage,
-      leaderboardState.loading, leaderboardState.entries.length, leaderboardMetric,
-      ...Object.values(state.producers),
-      ...availableUpgrades.map(({ id, cost }) => `${id}:${state.coins.gte(cost)}`),
-      ...visibleMoons.map(({ id, cost }) => `${id}:${state.coins.gte(cost)}`),
-      ...COSMETICS.filter(({ id }) => !state.cosmetics.owned.includes(id)).map(({ id, cost }) => `${id}:${state.coins.gte(cost)}`),
-    ].join(':');
-    if (!force && key === renderKey) return;
-    renderKey = key;
-    renderUpgrades(state);
-    renderMoons(state);
-    renderAchievements(state);
-    renderVoyage(state);
-    renderCosmetics(state);
-    renderRanks(state);
+    const key = panelRenderKey(state);
+    if (!force && key === renderKeys.get(active)) return;
+    renderKeys.set(active, key);
+    const render = {
+      upgrades: renderUpgrades,
+      moons: renderMoons,
+      achievements: renderAchievements,
+      fuel: renderFuel,
+      style: renderCosmetics,
+      voyage: renderVoyage,
+      ranks: renderRanks,
+    }[active];
+    render?.(state);
+  }
+
+  function panelRenderKey(state) {
+    if (active === 'upgrades') {
+      const available = getAvailableUpgrades(state);
+      return [upgradePage, state.upgrades.join(','), ...Object.values(state.producers), ...available.map(({ id, cost }) => `${id}:${state.coins.gte(cost)}`)].join(':');
+    }
+    if (active === 'moons') {
+      const visible = getVisibleMoons(state);
+      return [state.moons.join(','), ...visible.map(({ id, cost }) => `${id}:${state.coins.gte(cost)}`)].join(':');
+    }
+    if (active === 'achievements') {
+      const categoryEntries = ACHIEVEMENTS.filter((achievement) => achievement.category === achievementCategory);
+      const entries = categoryEntries.slice(achievementPage * ACHIEVEMENT_PAGE_SIZE, (achievementPage + 1) * ACHIEVEMENT_PAGE_SIZE);
+      const now = Date.now();
+      const snapshot = getEconomySnapshot(state, { now });
+      return [
+        Object.keys(state.achievements).length, achievementCategory, achievementPage,
+        ...entries.map((achievement) => {
+          const context = { now, snapshot };
+          const progress = getAchievementProgress(state, achievement, context);
+          const meter = Math.round(getAchievementFraction(state, achievement, context) * 1_000);
+          return `${achievement.id}:${Boolean(state.achievements[achievement.id])}:${formatProgress(progress)}:${meter}`;
+        }),
+      ].join(':');
+    }
+    if (active === 'fuel') {
+      const profile = getFuelProfile(state);
+      return [profile.units, (state.fuelModules ?? []).join(','), ...FUEL_MODULES.map(({ id, cost }) => `${id}:${state.coins.gte(cost)}`)].join(':');
+    }
+    if (active === 'style') return [state.cosmetics.owned.join(','), ...Object.values(state.cosmetics.equipped), ...COSMETICS.map(({ id, cost }) => `${id}:${state.coins.gte(cost)}`)].join(':');
+    if (active === 'voyage') return [state.discoveredProducers.join(','), ...Object.values(state.producers), state.boo.history.length, state.stats.totalClicks, state.stats.criticalClicks, state.stats.producersPurchased, state.stats.shinesClaimed].join(':');
+    return [state.settings.leaderboardName, state.integrity.imported, state.integrity.devLabUsed, leaderboardState.loading, leaderboardState.entries.length, leaderboardMetric].join(':');
   }
 
   function renderUpgrades(state) {
     const panel = root.querySelector('[data-panel="upgrades"]');
     const available = getAvailableUpgrades(state);
+    const pageCount = Math.max(1, Math.ceil(available.length / UPGRADE_PAGE_SIZE));
+    upgradePage = Math.min(upgradePage, pageCount - 1);
+    const visibleAvailable = available.slice(upgradePage * UPGRADE_PAGE_SIZE, (upgradePage + 1) * UPGRADE_PAGE_SIZE);
     const groups = getInstalledUpgradeGroups(state);
     panel.innerHTML = `<section class="rail-section">
       <div class="section-heading"><div><span class="eyebrow">Milestones, fusions & Cappy tech</span><h2>Available Upgrades</h2></div><span class="count-pill">${available.length}</span></div>
-      <div class="upgrade-list">${available.length ? available.map((upgrade) => {
+      <div class="upgrade-list">${available.length ? visibleAvailable.map((upgrade) => {
         const producer = upgrade.producerId ? PRODUCER_BY_ID[upgrade.producerId] : null;
         const affordable = state.coins.gte(upgrade.cost);
         const requirement = producer ? `${producer.name} · ${upgrade.milestone} owned` : `Cappy technique · ${format(upgrade.unlockAt)} lifetime`;
@@ -145,6 +195,7 @@ export function createRightRail(root, store, options = {}) {
           <button type="button" data-buy-upgrade="${upgrade.id}" ${affordable ? '' : 'disabled'}><span>Install</span><small>${format(upgrade.cost)} coins</small></button>
         </article>`;
       }).join('') : '<div class="empty-ticket"><span>🔧</span><p>Reach the next ownership or lifetime milestone to reveal another upgrade.</p></div>'}</div>
+      ${pageCount > 1 ? `<div class="page-controls"><button type="button" data-upgrade-page="-1" ${upgradePage === 0 ? 'disabled' : ''}>← Previous</button><span>Upgrades ${upgradePage * UPGRADE_PAGE_SIZE + 1}–${Math.min(available.length, (upgradePage + 1) * UPGRADE_PAGE_SIZE)} of ${available.length}</span><button type="button" data-upgrade-page="1" ${upgradePage + 1 === pageCount ? 'disabled' : ''}>Next →</button></div>` : ''}
     </section>
     <section class="rail-section installed-section"><div class="section-heading"><div><span class="eyebrow">Permanent collection</span><h2>Installed</h2></div><span class="count-pill">${state.upgrades.length}/${BUILDING_UPGRADES.length}</span></div>
       ${groups.size ? [...groups.entries()].map(([groupId, upgrades]) => {
@@ -227,6 +278,11 @@ export function createRightRail(root, store, options = {}) {
     </section>`;
   }
 
+  function renderFuel(state) {
+    const panel = root.querySelector('[data-panel="fuel"]');
+    panel.innerHTML = fuelPanelHtml(state);
+  }
+
   function renderRanks(state) {
     const panel = root.querySelector('[data-panel="ranks"]');
     const eligible = !state.integrity.imported && !state.integrity.devLabUsed;
@@ -291,7 +347,6 @@ export function createRightRail(root, store, options = {}) {
   }
 
   setTab(active);
-  renderAll(true);
   return { update, renderAll, setTab };
 }
 
