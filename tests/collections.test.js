@@ -8,7 +8,7 @@ import { ACHIEVEMENTS } from '../src/data/achievements.js';
 import { POWER_MOONS } from '../src/data/power-moons.js';
 import { BOO_OUTCOMES, BOO_PROBABILITY_TOTAL } from '../src/data/boo-outcomes.js';
 import { COSMETICS } from '../src/data/cosmetics.js';
-import { SHINE_OUTCOMES } from '../src/data/shine-outcomes.js';
+import { GLOOM_TEMPTATION_CHANCE, SHINE_OUTCOMES, SHINE_PROBABILITY_TOTALS } from '../src/data/shine-outcomes.js';
 import { evaluateAchievements } from '../src/systems/achievements.js';
 import { getVisibleMoons, purchaseMoon } from '../src/systems/moons.js';
 
@@ -18,7 +18,7 @@ describe('finite collections and authored content', () => {
     expect(BUILDING_UPGRADES).toHaveLength(480);
     expect(ACHIEVEMENTS).toHaveLength(700);
     expect(POWER_MOONS).toHaveLength(50);
-    expect(COSMETICS).toHaveLength(21);
+    expect(COSMETICS).toHaveLength(29);
     expect(SHINE_OUTCOMES).toHaveLength(9);
   });
 
@@ -108,5 +108,13 @@ describe('finite collections and authored content', () => {
     expect(BOO_OUTCOMES).toHaveLength(18);
     expect(BOO_PROBABILITY_TOTAL).toBeCloseTo(1, 12);
     expect(new Set(BOO_OUTCOMES.map(({ id }) => id)).size).toBe(18);
+  });
+
+  test('normal and Gloom Shine tables are independently normalized', () => {
+    expect(SHINE_PROBABILITY_TOTALS.normal).toBeCloseTo(1, 12);
+    expect(SHINE_PROBABILITY_TOTALS.corrupted).toBeCloseTo(1, 12);
+    const temptation = SHINE_OUTCOMES.find(({ temptation: tempting }) => tempting);
+    expect(temptation).toMatchObject({ kind: 'corrupted', probability: 0.04 });
+    expect(GLOOM_TEMPTATION_CHANCE).toBeCloseTo(0.04, 12);
   });
 });

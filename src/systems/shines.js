@@ -72,7 +72,15 @@ export function claimShine(state, options = {}) {
   state.shine.visibleUntil = 0;
   state.shine.spawnedAt = 0;
   state.shine.nextSpawnAt = now + randomShineDelay(random);
-  return { ok: true, kind, outcome, ...result };
+  return {
+    ok: true,
+    kind,
+    outcome,
+    beneficial: isBeneficialShineOutcome(outcome),
+    claimedAt: now,
+    receiptExpiresAt: result.effectExpiresAt ?? now + 5_000,
+    ...result,
+  };
 }
 
 export function forceShineOutcome(state, outcomeId, options = {}) {
@@ -93,7 +101,7 @@ function applyShineEffect(state, outcome, context) {
     state.coins = D(state.coins).add(amount);
     state.lifetimeCoins = D(state.lifetimeCoins).add(amount);
     state.stats.shineCoins = D(state.stats.shineCoins).add(amount);
-    return { amount: amount.toString(), loss: '0' };
+    return { amount: amount.toString(), loss: '0', effectExpiresAt: null };
   }
   if (effect.type === 'coin-loss') {
     const unprotectedLoss = D(state.coins).mul(effect.fraction).floor();
@@ -101,18 +109,23 @@ function applyShineEffect(state, outcome, context) {
     const loss = unprotectedLoss.mul(1 - protection).floor();
     const prevented = unprotectedLoss.sub(loss);
     state.coins = D(state.coins).sub(loss).max(0);
-    return { amount: '0', loss: loss.toString(), prevented: prevented.toString() };
+    return { amount: '0', loss: loss.toString(), prevented: prevented.toString(), effectExpiresAt: null };
   }
+  let appliedEffect;
   if (effect.type === 'strongest-producer-disabled') {
-    addTimedEffect(state, { type: 'producer-disabled', producerId: strongestProducerId(state, { now: context.now }), expiresAt, source: outcome.id });
+    appliedEffect = addTimedEffect(state, { type: 'producer-disabled', producerId: strongestProducerId(state, { now: context.now }), expiresAt, source: outcome.id });
   } else {
     const timedEffect = { type: effect.type, expiresAt, source: outcome.id };
     if (effect.multiplier !== undefined) timedEffect.multiplier = effect.multiplier;
     if (effect.amount !== undefined) timedEffect.amount = effect.amount;
-    addTimedEffect(state, timedEffect);
+    appliedEffect = addTimedEffect(state, timedEffect);
   }
   state.stats.shineEffects += 1;
-  return { amount: '0', loss: '0' };
+  return { amount: '0', loss: '0', effectExpiresAt: appliedEffect.expiresAt };
+}
+
+export function isBeneficialShineOutcome(outcome) {
+  return outcome?.kind === 'normal' || outcome?.temptation === true;
 }
 
 function DecimalMax(value, minimum) {

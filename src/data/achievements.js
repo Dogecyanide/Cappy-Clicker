@@ -875,10 +875,10 @@ const shineOutcomeBadgeFlavour = {
   'shine-sale': 'The quarter-price discount sends shoppers sprinting before the glow reaches the fine print.',
   'cappy-corona': 'Threefold throwing power traces a bright red orbit around every manual coin.',
   'portable-daylight': 'A bottled afternoon illuminates the production ledger for one unusually profitable minute.',
-  'grand-shine-jackpot': 'Five minutes of output burst open with enough treasury sparkle to stain the stamp gold.',
-  'gloom-toll': 'Three percent disappears into the counterfeit ray’s tiny, entirely unlicensed pocket.',
-  'eclipse-shift': 'The routes endure thirty-five dim seconds while half the machinery pretends to be moonlit.',
-  'blackout-clause': 'The strongest producer signs an involuntary twenty-second leave form in purple ink.',
+  'black-sun-jackpot': 'The counterfeit sun cracks open, spilling an hour of output and a quarter-treasury windfall.',
+  'gloom-toll': 'Twelve percent disappears into the counterfeit ray’s entirely unlicensed pocket.',
+  'eclipse-shift': 'The routes crawl through ninety dim seconds at fifteen-percent power.',
+  'blackout-clause': 'The strongest producer signs a seventy-five-second involuntary leave form in purple ink.',
 };
 
 shineAchievements.push(...SHINE_OUTCOMES.map((outcome) => row(
@@ -896,9 +896,9 @@ const cosmeticAchievements = [
   [6, 'Carry-On Collection', 'Six styles fit inside a bag if the laws of volume remain polite.'],
   [9, 'Nine Looks, One Passport', 'Customs asks which version of Cappy is declaring the luggage.'],
   [12, 'Style Stopover', 'Twelve cosmetics turn the cabin into a very small boutique.'],
-  [15, 'Fifteen-Fold Makeover', 'The voyage changes outfits more often than kingdoms.'],
-  [18, 'Full Paid Collection', 'Every purchasable style now has a receipt and shelf space.'],
-  [21, 'Complete Cosmetic Catalogue', 'All hats, backdrops, and sound packs are permanently owned.'],
+  [17, 'Seventeen-Shelf Makeover', 'Seventeen souvenirs make the wardrobe creak in three distinct accents.'],
+  [23, 'Cabin Collection Curator', 'Twenty-three receipts require their own carefully indexed suitcase.'],
+  [29, 'Complete Cosmetic Catalogue', 'All twenty-nine hats, horizons, and sound packs are permanently owned.'],
 ].map(([target, name, flavour]) => row('cosmetics', `cosmetics-owned-${target}`, name, flavour, 'cosmetics-owned', target));
 
 cosmeticAchievements.push(...[
@@ -907,7 +907,7 @@ cosmeticAchievements.push(...[
   ['cappy', 7, 'Every Cappy Color', 'The complete brim spectrum hangs proudly in the cabin.'],
   ['backdrop', 2, 'Change of Scenery', 'A second backdrop makes the same empire look freshly travelled.'],
   ['backdrop', 4, 'Four-Sky Forecast', 'The window can now display four mutually exclusive kinds of weather.'],
-  ['backdrop', 7, 'Every Horizon', 'All seven voyage backdrops are ready behind the paperwork.'],
+  ['backdrop', 15, 'Every Horizon', 'All fifteen voyage backdrops are ready behind the paperwork.'],
   ['sound', 4, 'Quartet of Clicks', 'Four sound packs disagree musically about what a purchase means.'],
   ['sound', 7, 'Full Soundcheck', 'Every synthesized sound pack has taken a bow.'],
 ].map(([scope, target, name, flavour]) => row('cosmetics', `cosmetics-${scope}-${target}`, name, flavour, 'cosmetics-category-owned', target, scope)));

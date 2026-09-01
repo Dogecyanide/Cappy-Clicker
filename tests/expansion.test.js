@@ -12,9 +12,9 @@ describe('Grand Tour expansion systems', () => {
     expect(shortScaleName(21)).toBe('vigintillion');
     expect(shortScaleName(22)).toBe('unvigintillion');
     expect(shortScaleName(101)).toBe('centillion');
-    expect(format('1e63')).toBe('1.00 vigintillion');
-    expect(format('1e66')).toBe('1.00 unvigintillion');
-    expect(format('1e303')).toBe('1.00 centillion');
+    expect(format('1e63')).toBe('1.000 vigintillion');
+    expect(format('1e66')).toBe('1.000 unvigintillion');
+    expect(format('1e303')).toBe('1.000 centillion');
     expect(format('1e306')).toMatch(/e306$/);
   });
 
@@ -45,8 +45,8 @@ describe('Grand Tour expansion systems', () => {
     state.coins = D(1_000);
     expect(spawnShine(state, { now: 2_000, random: () => 0 })).toBe(true);
     const result = claimShine(state, { now: 3_000, random: () => 0 });
-    expect(result).toMatchObject({ ok: true, kind: 'corrupted', loss: '30' });
-    expect(state.coins.eq(970)).toBe(true);
+    expect(result).toMatchObject({ ok: true, kind: 'corrupted', loss: '120', receiptExpiresAt: 8_000 });
+    expect(state.coins.eq(880)).toBe(true);
     expect(state.stats.corruptedShines).toBe(1);
   });
 
@@ -54,10 +54,36 @@ describe('Grand Tour expansion systems', () => {
     const state = createInitialState(1_000);
     state.coins = D(1_000);
     const result = forceShineOutcome(state, 'gloom-toll', { now: 2_000, random: () => 0.5 });
-    expect(result).toMatchObject({ ok: true, kind: 'corrupted', outcome: { id: 'gloom-toll' }, loss: '30' });
+    expect(result).toMatchObject({ ok: true, kind: 'corrupted', outcome: { id: 'gloom-toll' }, loss: '120' });
     expect(state.stats.shinesSeen).toBe(1);
     expect(state.stats.shinesClaimed).toBe(1);
     expect(state.stats.shineOutcomeCounts['gloom-toll']).toBe(1);
+  });
+
+  test('Gloom Shines pair severe penalties with a four-percent Black Sun jackpot', () => {
+    const state = createInitialState(1_000);
+    state.coins = D(1_000);
+    const penalty = forceShineOutcome(state, 'eclipse-shift', { now: 2_000 });
+    expect(penalty).toMatchObject({ beneficial: false, receiptExpiresAt: 92_000 });
+    expect(state.activeEffects).toContainEqual(expect.objectContaining({ multiplier: 0.15, expiresAt: 92_000 }));
+
+    const jackpot = forceShineOutcome(state, 'black-sun-jackpot', { now: 3_000 });
+    expect(jackpot).toMatchObject({ kind: 'corrupted', beneficial: true, outcome: { title: 'Black Sun Jackpot' }, receiptExpiresAt: 8_000 });
+    expect(D(jackpot.amount).gte(220)).toBe(true);
+  });
+
+  test('expanded collection completions do not inherit obsolete save badges', () => {
+    const raw = JSON.parse(serializeState(createInitialState(1_000)));
+    raw.achievements['cosmetics-owned-21'] = { unlockedAt: 1_000 };
+    raw.achievements['cosmetics-backdrop-7'] = { unlockedAt: 1_000 };
+    raw.achievements['shine-outcome-grand-shine-jackpot'] = { unlockedAt: 1_000 };
+    raw.stats.shineOutcomeCounts['grand-shine-jackpot'] = 1;
+
+    const restored = deserializeState(raw, 2_000);
+    expect(restored.achievements['cosmetics-owned-21']).toBeUndefined();
+    expect(restored.achievements['cosmetics-backdrop-7']).toBeUndefined();
+    expect(restored.achievements['shine-outcome-grand-shine-jackpot']).toBeUndefined();
+    expect(restored.stats.shineOutcomeCounts['grand-shine-jackpot']).toBeUndefined();
   });
 
   test('cosmetics cost current coins, remain owned, and equip by category', () => {

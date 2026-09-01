@@ -20,8 +20,8 @@ export function createParticleCanvas(canvas, getMode = () => 'full') {
   function burst(x, y, critical = false) {
     const mode = getMode();
     if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
-    const count = mode === 'potato' ? 2 : mode === 'reduced' ? 7 : critical ? 24 : 13;
-    const cap = mode === 'potato' ? 12 : mode === 'reduced' ? 40 : 90;
+    const count = mode === 'potato' ? 2 : mode === 'reduced' ? (critical ? 7 : 5) : critical ? 16 : 10;
+    const cap = mode === 'potato' ? 6 : mode === 'reduced' ? 28 : 64;
     for (let index = 0; index < count && particles.length < cap; index += 1) {
       const angle = Math.random() * Math.PI * 2;
       const speed = (critical ? 140 : 90) + Math.random() * (critical ? 210 : 120);
@@ -31,6 +31,7 @@ export function createParticleCanvas(canvas, getMode = () => 'full') {
         color: critical ? ['#fff4a8', '#ffd42a', '#ff6a55'][index % 3] : ['#ffd42a', '#fff1a3', '#f5a11a'][index % 3],
       });
     }
+    schedule();
   }
 
   let previous = performance.now();
@@ -53,16 +54,17 @@ export function createParticleCanvas(canvas, getMode = () => 'full') {
         context.beginPath();
         context.arc(particle.x, particle.y, particle.size * alpha + 1, 0, Math.PI * 2);
         context.fill();
-        context.strokeStyle = 'rgba(137,78,0,.28)';
-        context.stroke();
       }
       context.globalAlpha = 1;
     }
-    schedule();
+    if (particles.length) schedule();
   }
 
   function schedule() {
-    if (running && !document.hidden && !frameId) frameId = requestAnimationFrame(frame);
+    if (running && particles.length && !document.hidden && !frameId) {
+      previous = performance.now();
+      frameId = requestAnimationFrame(frame);
+    }
   }
 
   function visibilityChanged() {
@@ -79,7 +81,11 @@ export function createParticleCanvas(canvas, getMode = () => 'full') {
   observer.observe(canvas);
   document.addEventListener('visibilitychange', visibilityChanged);
   resize();
-  schedule();
 
-  return { burst, destroy() { running = false; observer.disconnect(); document.removeEventListener('visibilitychange', visibilityChanged); if (frameId) cancelAnimationFrame(frameId); } };
+  return {
+    burst,
+    get activeCount() { return particles.length; },
+    get isAnimating() { return Boolean(frameId); },
+    destroy() { running = false; particles.length = 0; observer.disconnect(); document.removeEventListener('visibilitychange', visibilityChanged); if (frameId) cancelAnimationFrame(frameId); },
+  };
 }

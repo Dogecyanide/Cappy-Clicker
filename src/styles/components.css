@@ -11,10 +11,11 @@
 .cappy-arena { position: relative; height: 215px; margin: 2px -15px 0; display: grid; place-items: center; isolation: isolate; }
 .cappy-arena::before { content: ""; position: absolute; width: 88%; aspect-ratio: 1.4; border-radius: 50%; background: radial-gradient(ellipse, rgba(56,143,188,.38), transparent 68%); transform: translateY(65px); }
 .cappy-arena canvas, [data-click-feedback] { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 4; }
+[data-click-feedback] { contain: layout paint; }
 .cappy-orbit { position: absolute; border: 2px dashed rgba(194,53,50,.24); border-radius: 50%; transform: rotate(-16deg); }
 .cappy-orbit--1 { width: 88%; height: 54%; }
 .cappy-orbit--2 { width: 65%; height: 87%; border-color: rgba(36,124,161,.2); transform: rotate(47deg); }
-.cappy-button { --look-x: 0px; --look-y: 0px; position: relative; z-index: 3; width: min(82%, 360px); aspect-ratio: 1.35; padding: 0; border: 0; background: transparent; cursor: pointer; filter: drop-shadow(0 24px 11px rgba(70,25,29,.25)); transform-origin: center 70%; }
+.cappy-button { --look-x: 0px; --look-y: 0px; position: relative; z-index: 3; width: min(82%, 360px); aspect-ratio: 1.35; padding: 0; border: 0; background: transparent; cursor: pointer; filter: drop-shadow(0 24px 11px rgba(70,25,29,.25)); transform-origin: center 70%; will-change: transform; }
 .cappy-button img { width: 100%; height: 100%; object-fit: contain; transform: translate(var(--look-x), var(--look-y)); pointer-events: none; }
 body[data-cappy-style="gold"] .cappy-button img { filter: sepia(.78) saturate(3.8) hue-rotate(355deg) brightness(1.12) drop-shadow(0 0 8px #ffd756); }
 body[data-cappy-style="luigi"] .cappy-button img { filter: hue-rotate(102deg) saturate(1.22); }
@@ -43,7 +44,8 @@ body[data-cappy-style="aurora"] .cappy-button img { animation: cappy-aurora 7s l
 .stage-ticket { position: relative; z-index: 2; display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: center; margin-top: 12px; padding: 10px 13px; border-radius: 9px; color: #fff; background: #3c2943; transform: rotate(-1deg); }
 .stage-ticket > span { padding: 5px 8px; color: #3c2943; background: var(--gold); border-radius: 5px; font-weight: 1000; text-transform: uppercase; }
 .stage-ticket p { margin: 0; font-size: 12px; }
-.click-pop { position: absolute; opacity: 0; color: #fff; font-size: 19px; font-weight: 1000; text-shadow: 0 3px 0 var(--red-dark), 0 0 8px rgba(0,0,0,.4); transform: translate(-50%,-50%); }
+.click-pop { position: absolute; opacity: 0; color: #fff; font-size: 19px; font-weight: 1000; font-variant-numeric: tabular-nums; text-shadow: 0 3px 0 var(--red-dark), 0 0 8px rgba(0,0,0,.4); transform: translate3d(-50%,-50%,0); will-change: transform, opacity; }
+.click-pop.is-critical-value { color: #fff7a8; font-size: 23px; text-shadow: 0 3px 0 #a14722, 0 0 11px #fff, 0 0 19px #ffd42a; }
 
 .flight-deck { padding: 13px; overflow: hidden; border-radius: 16px 25px 14px 20px; background: radial-gradient(circle at 12% 12%, rgba(105,232,239,.36), transparent 26%), linear-gradient(145deg, rgba(242,253,255,.98), rgba(255,243,186,.98)); }
 .flight-deck::before { content: ""; position: absolute; inset: 7px; border: 1px dashed #7a8c91; border-radius: inherit; pointer-events: none; }
@@ -76,6 +78,9 @@ body[data-cappy-style="aurora"] .cappy-button img { animation: cappy-aurora 7s l
 .shine-receipt[data-tone="gloom"] { border-color: #6f318c; background: linear-gradient(120deg, #eee1fa, #fff); }
 .shine-receipt[data-tone="gloom"] .shine-receipt__icon { background: #6f318c; outline-color: #32113f; }
 .shine-receipt[data-tone="gloom"] strong { color: #712a87; }
+.shine-receipt[data-tone="gloom-prize"] { border-color: #6f318c; background: linear-gradient(120deg, #2c0d3d, #7c318f 58%, #ffe775); color: #fff; }
+.shine-receipt[data-tone="gloom-prize"] .shine-receipt__icon { color: #31113f; background: #ffe15d; outline-color: #6f318c; }
+.shine-receipt[data-tone="gloom-prize"] strong, .shine-receipt[data-tone="gloom-prize"] p { color: #fff; }
 .shine-receipt.is-new { animation: receipt-punch .44s cubic-bezier(.2,1.4,.4,1); }
 
 .producer-card { display: grid; grid-template-columns: 122px minmax(0,1fr); min-height: 208px; content-visibility: auto; contain-intrinsic-size: auto 208px; background: rgba(255,250,239,.97); border: 3px solid #3e2942; border-radius: 18px 11px 18px 10px; box-shadow: var(--soft-shadow); overflow: hidden; transition: transform .18s, border-color .18s, filter .18s; }
@@ -310,7 +315,7 @@ body[data-cappy-style="aurora"] .cappy-button img { animation: cappy-aurora 7s l
 .cosmetic-card.is-equipped::after { content: "ON"; position: absolute; top: 5px; right: 6px; padding: 2px 5px; border-radius: 99px; color: #fff; background: var(--green); font-size: 7px; font-weight: 1000; letter-spacing: .08em; }
 .cosmetic-preview { display: grid; place-items: center; width: 48px; height: 48px; border: 3px solid #fff; border-radius: 14px 9px 14px 9px; color: #fff; background: linear-gradient(145deg, var(--red), var(--red-dark)); box-shadow: 0 3px 0 rgba(59,35,57,.22); font-size: 23px; font-weight: 1000; }
 .cosmetic-preview--image { position: relative; overflow: hidden; isolation: isolate; background: #30465a; }
-.cosmetic-preview--image img { position: absolute; z-index: 0; inset: 0; width: 100%; height: 100%; object-fit: cover; filter: saturate(1.2) contrast(1.05); }
+.cosmetic-preview--image img { position: absolute; z-index: 0; inset: 0; width: 100%; height: 100%; object-fit: cover; background: #17142d; filter: saturate(1.12) contrast(1.04); }
 .cosmetic-preview--image::after { content: ""; position: absolute; z-index: 1; inset: 0; background: linear-gradient(145deg, transparent 25%, rgba(27,14,38,.62)); }
 .cosmetic-preview--image b { position: relative; z-index: 2; align-self: end; justify-self: end; padding: 2px 4px; color: #fff; font-size: 12px; line-height: 1; text-shadow: 0 1px 3px #000; }
 .cosmetic-preview--gold, .cosmetic-preview--sunshine { color: #5c3515; background: linear-gradient(145deg, #fff69a, #eca528); }
@@ -385,7 +390,7 @@ body[data-cappy-style="aurora"] .cappy-button img { animation: cappy-aurora 7s l
 .boo-machine--catastrophic { background: linear-gradient(145deg, #160818, #5d123c); }
 .boo-result__receipt { display: flex; justify-content: space-between; gap: 8px; margin: 8px 0; padding: 8px; border: 2px dashed #debadf; background: rgba(255,255,255,.1); font-size: 10px; }
 
-.shine-widget { position: fixed; z-index: 48; left: clamp(16px, 4vw, 72px); bottom: clamp(82px, 15vh, 180px); width: 145px; height: 160px; pointer-events: none; opacity: 0; transform: translateY(28px) scale(.42) rotate(-18deg); transition: opacity .3s ease, transform .42s cubic-bezier(.16,1.25,.35,1); }
+.shine-widget { position: fixed; z-index: 48; left: clamp(8px, var(--shine-left, 4vw), calc(100vw - 153px)); top: clamp(8px, var(--shine-top, 62vh), calc(100dvh - 168px)); width: 145px; height: 160px; pointer-events: none; opacity: 0; transform: translateY(28px) scale(.42) rotate(-18deg); transition: opacity .3s ease, transform .42s cubic-bezier(.16,1.25,.35,1); }
 .shine-widget.is-visible { pointer-events: auto; opacity: 1; transform: translateY(0) scale(1) rotate(-3deg); }
 .shine-target { position: relative; width: 100%; height: 100%; padding: 0; border: 0; color: #4b2b24; background: transparent; cursor: pointer; filter: drop-shadow(0 11px 8px rgba(38,17,42,.28)); }
 .shine-target::before { content: ""; position: absolute; inset: 9px; z-index: -1; border-radius: 50%; background: radial-gradient(circle, rgba(255,248,153,.9), rgba(255,203,46,.25) 46%, transparent 70%); animation: shine-halo 1.5s ease-in-out infinite; }
@@ -461,7 +466,7 @@ body.has-banana .banana-sticker { display: block; }
   .cosmetic-card { grid-template-columns: 44px minmax(0, 1fr); }
   .cosmetic-preview { width: 42px; height: 42px; }
   .leaderboard-list li { grid-template-columns: 27px minmax(0, 1fr) minmax(56px, auto); gap: 5px; }
-  .shine-widget { left: 8px; bottom: 72px; width: 112px; height: 132px; }
+  .shine-widget { left: clamp(8px, var(--shine-left, 4vw), calc(100vw - 120px)); top: clamp(8px, var(--shine-top, 62vh), calc(100dvh - 140px)); width: 112px; height: 132px; }
   .shine-target img { width: 91px; height: 91px; }
   .shine-target span, .shine-target small { max-width: 112px; }
   .boo-widget { top: 10px; right: 3vw; }

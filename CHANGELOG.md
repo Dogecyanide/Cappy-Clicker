@@ -6,11 +6,11 @@
 - Expanded permanent progression from 140 to 480 upgrades: eleven varied milestones for each destination through 1,000 owned, plus forty Cappy/Fuel techniques spanning clicking, offline production, event luck, protection, engine scaling, and rare-Shine effects.
 - Expanded the passport from 250 to 700 achievements across ten categories, with +0.02% production per badge and a +14% completion cap. Replaced fallback badge blurbs with authored route scenes and added validation that rejects shared five-word flavour phrases.
 - Expanded the finite Power Moon album from 16 to 50. Moons 10, 20, 30, 40, and 50 are escalating Multi Moons with larger price jumps and substantially stronger permanent bonuses.
-- Added active-play rare Shine encounters, including six helpful Shine outcomes and a 7% chance of a cracked purple Gloom Shine with three risky outcomes.
-- Added a persistent Shine/Gloom receipt and compact Odyssey Fuel dipstick beneath Cappy, exact Developer Lab outcome forcing, eighteen Fuel modules, and expanded Fuel effects.
-- Added 21 permanent cosmetics across Cappy styles, voyage backdrops, and synthesized sound packs.
-- Fixed the background layer and GitHub Pages asset resolution, added eight journey scenes and six distinct purchasable image backdrops with previews, and preloaded the opening scene.
-- Added the supplied Power Moon and Multi Moon fanfares with lazy loading; critical tosses remain silent and no longer create payout text popups.
+- Added active-play rare Shine encounters, including five helpful Shine outcomes and a 7% chance of a cracked purple Gloom Shine with three serious penalties plus a 4% Black Sun Jackpot temptation.
+- Added a self-clearing Shine/Gloom receipt and compact Odyssey Fuel dipstick beneath Cappy, exact Developer Lab outcome forcing, eighteen Fuel modules, and expanded Fuel effects.
+- Added 29 permanent cosmetics across Cappy styles, voyage backdrops, and synthesized sound packs.
+- Fixed the background layer and GitHub Pages asset resolution, retained eight journey scenes, and expanded the purchasable collection to fourteen honest local-image backdrops with accurate previews. Corrected Delfino, Bob-omb Battlefield, Comet Observatory, Rainbow Road, and Gloom scene mismatches, then added Ricco Harbor, Gusty Garden, Super Bell Hill, Coconut Mall, Mount Wario, Rogueport, Toad Town, and Yoshi's Island.
+- Added the supplied Power Moon and Multi Moon fanfares with lazy loading; critical tosses remain silent and use smooth amount-only feedback without a CRITICAL banner.
 - Added CAPPY2 save-file download and file import alongside text copy/paste, plus a confirmed local-save deletion flow.
 - Expanded the ambient news pool to 190 headlines, added varied reactive templates, and prioritized unseen items while suppressing the most recent repeats.
 - Extended readable short-scale number names through centillion before falling back to scientific notation.

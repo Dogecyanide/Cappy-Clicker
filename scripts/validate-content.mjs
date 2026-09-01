@@ -42,7 +42,7 @@ check(PRODUCERS.length === 40, `Expected 40 producers, found ${PRODUCERS.length}
 check(BUILDING_UPGRADES.length === 480, `Expected 480 permanent upgrades, found ${BUILDING_UPGRADES.length}.`);
 check(ACHIEVEMENTS.length === 700, `Expected 700 achievements, found ${ACHIEVEMENTS.length}.`);
 check(POWER_MOONS.length === 50, `Expected 50 Power Moons, found ${POWER_MOONS.length}.`);
-check(COSMETICS.length === 21, `Expected 21 cosmetics, found ${COSMETICS.length}.`);
+check(COSMETICS.length === 29, `Expected 29 cosmetics, found ${COSMETICS.length}.`);
 check(FUEL_MODULES.length === 18, `Expected 18 Odyssey Fuel modules, found ${FUEL_MODULES.length}.`);
 check(POWER_MOONS.filter(({ isMulti }) => isMulti).length === 5, 'Expected a Multi Moon at every tenth Moon.');
 check(POWER_MOONS.every((moon, index) => Boolean(moon.isMulti) === ((index + 1) % 10 === 0)), 'Multi Moons must be numbers 10, 20, 30, 40, and 50.');
@@ -114,6 +114,7 @@ const assetPaths = [
   'public/assets/cappy/cappy-hero.svg', 'public/assets/misc/odyssey-ship.webp',
   'public/assets/ui/kingdom-coin.webp', 'public/assets/ui/og-cappy-clicker.png',
   ...['cap', 'cascade', 'sand', 'wooded', 'lake', 'metro', 'snow', 'luncheon'].map((name) => `public/assets/kingdoms/${name}.webp`),
+  ...COSMETICS.filter(({ backdrop }) => backdrop?.mode === 'fixed').map(({ backdrop }) => `public/assets/kingdoms/${backdrop.file}`),
   ...['king-boo', 'slot-machine', 'symbol-pineapple', 'symbol-stu', 'symbol-boo'].map((name) => `public/assets/boo/${name}.webp`),
   'public/assets/shines/shine-sprite.webp', 'public/assets/shines/gloom-shine.webp',
   'public/assets/audio/moon-get.mp3', 'public/assets/audio/multi-moon-get.mp3',

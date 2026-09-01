@@ -50,7 +50,7 @@ These producer names and businesses are authored for Cappy Clicker. Their images
 | Local file | Exact source page | Coverage note |
 |---|---|---|
 | `assets/producers/bobomb-battlefield.webp` | [File:SM64_Artwork_Bob-omb_Battlefield.jpg](https://www.mariowiki.com/File:SM64_Artwork_Bob-omb_Battlefield.jpg) | Scenic *Super Mario 64* location artwork for Bob-omb Battlefield Battery. |
-| `assets/producers/delfino-plaza.webp` | [File:Restored_Delfino_Plaza_HD.png](https://www.mariowiki.com/File:Restored_Delfino_Plaza_HD.png) | Scenic *Super Mario Sunshine* screenshot for Delfino Plaza Boardwalk. |
+| `assets/producers/delfino-plaza.webp` | [File:Restored_Delfino_Plaza_HD.png](https://www.mariowiki.com/File:Restored_Delfino_Plaza_HD.png) | Scenic *Super Mario Sunshine* screenshot for Delfino Fruit Market. |
 | `assets/producers/super-bell-hill.webp` | [File:SM3DWBF_Screenshot_Super_Bell_Hill.png](https://www.mariowiki.com/File:SM3DWBF_Screenshot_Super_Bell_Hill.png) | Scenic *Super Mario 3D World + Bowser's Fury* screenshot for the authored Cat-Bell Hills Bellworks. |
 | `assets/producers/choco-mountain.webp` | [File:MKWorld_Icon_Choco_Mountain.png](https://www.mariowiki.com/File:MKWorld_Icon_Choco_Mountain.png) | Course-icon asset for Choco Mountain Railway. |
 | `assets/producers/yoshis-island.webp` | [File:NM_SMW2_Yoshis_Island.png](https://www.mariowiki.com/File:NM_SMW2_Yoshis_Island.png) | Nintendo Music scenic image for Yoshi's Island Egg Co-op. |
@@ -96,6 +96,24 @@ To reproduce the committed pair, run the normal asset refresh first and then run
 | `assets/kingdoms/metro.webp` | [Metro Kingdom](https://www.mariowiki.com/File:SMO_Art_-_Metro_Kingdom.jpg) |
 | `assets/kingdoms/snow.webp` | [Snow Kingdom](https://www.mariowiki.com/File:SMO_Art_-_Snow_Kingdom.png) |
 | `assets/kingdoms/luncheon.webp` | [Luncheon Kingdom](https://www.mariowiki.com/File:SMO_Art_-_Luncheon_Kingdom.jpg) |
+
+The purchasable `assets/kingdoms/backdrop-*.webp` files are local runtime copies of the already documented scenic sources below. Keeping a dedicated copy gives every cosmetic an immutable preview and avoids hotlinking or producer-art path coupling.
+
+| Backdrop asset | Documented local source |
+|---|---|
+| `backdrop-delfino-plaza.webp` | `assets/producers/delfino-plaza.webp` |
+| `backdrop-ricco-harbor.webp` | `assets/producers/ricco-harbor.webp` |
+| `backdrop-bobomb-battlefield.webp` | `assets/producers/bobomb-battlefield.webp` |
+| `backdrop-gusty-garden.webp` | `assets/producers/gusty-garden.webp` |
+| `backdrop-comet-observatory.webp` | `assets/producers/comet-observatory.webp` |
+| `backdrop-super-bell-hill.webp` | `assets/producers/super-bell-hill.webp` |
+| `backdrop-coconut-mall.webp` | `assets/producers/coconut-mall.webp` |
+| `backdrop-rainbow-road.webp` | `assets/producers/rainbow-road.webp` |
+| `backdrop-mount-wario.webp` | `assets/producers/mount-wario.webp` |
+| `backdrop-rogueport.webp` | `assets/producers/rogueport.webp` |
+| `backdrop-toad-town.webp` | `assets/producers/toad-town.webp` |
+| `backdrop-luigis-mansion.webp` | `assets/producers/luigis-mansion.webp` |
+| `backdrop-yoshis-island.webp` | `assets/producers/yoshis-island.webp` |
 
 ## King Boo and slot references
 

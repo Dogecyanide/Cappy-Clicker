@@ -34,16 +34,16 @@ async function closeLab(page) {
 test('fresh voyage: click, producer, milestone upgrade, achievement, and Power Moon', async ({ page }) => {
   const errors = watchRuntimeErrors(page);
   await freshGame(page);
-  await expect(page.locator('[data-coins]')).toHaveText('0');
+  await expect(page.locator('[data-coins]')).toHaveText('0.000');
 
   const cappy = page.locator('[data-cappy-button]');
   for (let index = 0; index < 15; index += 1) await cappy.click({ force: true });
-  await expect(page.locator('[data-coins]')).not.toHaveText('0');
+  await expect(page.locator('[data-coins]')).not.toHaveText('0.000');
 
   const frog = page.locator('[data-producer-card="frog-capture"]');
   await frog.locator('[data-buy="1"]').click();
   await expect(frog.locator('[data-owned]')).toHaveText('1');
-  await expect(page.locator('[data-cps]')).not.toHaveText('0');
+  await expect(page.locator('[data-cps]')).not.toHaveText('0.000');
 
   await openLab(page);
   await page.locator('[data-dev-dialog] [name="coins"]').fill('1e6');
@@ -64,11 +64,11 @@ test('fresh voyage: click, producer, milestone upgrade, achievement, and Power M
   await expect(firstMoon).toBeEnabled();
   await firstMoon.click();
   await expect(page.locator('.moon-count')).toHaveText('1/50');
-  await expect(frog.locator('[data-each-rate]')).not.toHaveText('0.8');
+  await expect(frog.locator('[data-each-rate]')).not.toHaveText('0.800');
   expect(errors).toEqual([]);
 });
 
-test('critical tosses keep their payout and animation without making a text popup', async ({ page }) => {
+test('critical tosses show their larger payout without bringing back a CRITICAL label', async ({ page }) => {
   const errors = watchRuntimeErrors(page);
   await freshGame(page);
 
@@ -81,8 +81,42 @@ test('critical tosses keep their payout and animation without making a text popu
 
   await expect.poll(() => page.evaluate(() => window.cappyClicker.store.state.stats.criticalClicks)).toBe(1);
   await expect(page.locator('[data-cappy-button]')).toHaveClass(/is-critical/);
-  await expect(page.locator('.click-pop.is-active')).toHaveCount(0);
+  await expect(page.locator('.click-pop.is-critical-value')).toHaveCount(1);
+  await expect(page.locator('.click-pop.is-critical-value')).toHaveText(/^\+\d+\.\d{3}/);
+  await expect(page.locator('[data-click-feedback]')).not.toContainText('CRITICAL');
   expect(await page.evaluate(() => window.cappyClicker.store.state.coins.gte(6))).toBe(true);
+  expect(errors).toEqual([]);
+});
+
+test('sustained rapid tosses keep exact mechanics while bounding whole-page refreshes', async ({ page }) => {
+  const errors = watchRuntimeErrors(page);
+  await freshGame(page);
+  const burst = await page.evaluate(() => {
+    Math.random = () => 1;
+    const button = document.querySelector('[data-cappy-button]');
+    const store = window.cappyClicker.store;
+    const clicksBefore = store.state.stats.totalClicks;
+    const revisionBefore = store.revision;
+    const started = performance.now();
+    for (let index = 0; index < 250; index += 1) {
+      button.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: 120, clientY: 220 }));
+    }
+    return {
+      elapsed: performance.now() - started,
+      clicks: store.state.stats.totalClicks - clicksBefore,
+      immediateRevisions: store.revision - revisionBefore,
+      activeFeedback: document.querySelectorAll('.click-pop.is-active').length,
+      mechanicsAligned: store.state.coins.eq(store.state.stats.coinsFromClicks)
+        && store.state.lifetimeCoins.eq(store.state.stats.coinsFromClicks),
+    };
+  });
+
+  expect(burst.clicks).toBe(250);
+  expect(burst.immediateRevisions).toBe(1);
+  expect(burst.activeFeedback).toBeLessThanOrEqual(12);
+  expect(burst.mechanicsAligned).toBe(true);
+  expect(burst.elapsed).toBeLessThan(1_000);
+  await expect.poll(() => page.evaluate(() => window.cappyClicker.store.state.stats.totalClicks)).toBe(250);
   expect(errors).toEqual([]);
 });
 
@@ -156,12 +190,12 @@ test('triple-Boo catastrophe charges once and its curse survives reload', async 
   await expect(page.locator('.slot-reel')).toHaveText(['👻', '👻', '👻']);
   await expect(page.locator('.boo-result__receipt')).toContainText('Casino charge');
   await expect(page.locator('body')).toHaveClass(/has-purple-curse/);
-  await expect(page.locator('[data-cps]')).toHaveText('0');
+  await expect(page.locator('[data-cps]')).toHaveText('0.000');
   const lossBeforeReload = await page.evaluate(() => window.cappyClicker.store.state.stats.booCoinsLost.toString());
 
   await page.reload();
   await expect(page.locator('body')).toHaveClass(/has-purple-curse/);
-  await expect(page.locator('[data-cps]')).toHaveText('0');
+  await expect(page.locator('[data-cps]')).toHaveText('0.000');
   const lossAfterReload = await page.evaluate(() => window.cappyClicker.store.state.stats.booCoinsLost.toString());
   expect(lossAfterReload).toBe(lossBeforeReload);
   expect(errors).toEqual([]);
@@ -189,7 +223,7 @@ test('Developer Lab can preview both Shines and apply an exact outcome', async (
   await page.locator('[data-dev="shine-force"]').click();
   await expect(page.locator('[data-dev-output]')).toContainText('Gloom Toll');
   await expect(page.locator('[data-shine-receipt]')).toContainText('Gloom Toll');
-  await expect(page.locator('[data-shine-receipt-reward]')).toContainText('−30 Kingdom Coins');
+  await expect(page.locator('[data-shine-receipt-reward]')).toContainText('−120.000 Kingdom Coins');
   await expect.poll(() => page.evaluate(() => window.cappyClicker.store.state.stats.shineOutcomeCounts['gloom-toll'])).toBe(1);
   expect(errors).toEqual([]);
 });

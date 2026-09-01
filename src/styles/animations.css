@@ -1,7 +1,8 @@
 @keyframes cappy-float { 0%,100% { transform: translateY(0) rotate(-1deg); } 50% { transform: translateY(-13px) rotate(1.5deg); } }
-@keyframes cappy-toss { 0% { transform: scale(1); } 18% { transform: scale(1.08,.82) translateY(13px); } 46% { transform: translateY(-95px) rotate(150deg) scale(.88); } 72% { transform: translateY(-25px) rotate(330deg); } 100% { transform: translateY(0) rotate(360deg); } }
-@keyframes cappy-critical { 0% { transform: scale(1); } 16% { transform: scale(1.15,.72) translateY(15px); } 40% { transform: translateY(-130px) rotate(-190deg) scale(1.2); filter: drop-shadow(0 0 22px #fff) brightness(1.25); } 65% { transform: translateY(-20px) rotate(-420deg); } 82% { transform: scale(1.18,.82); } 100% { transform: scale(1) rotate(-540deg); } }
-@keyframes click-pop { 0% { opacity: 0; transform: translate(-50%,-20%) scale(.7); } 14% { opacity: 1; transform: translate(-50%,-55%) scale(1.08); } 100% { opacity: 0; transform: translate(-50%,-190%) scale(.92); } }
+@keyframes cappy-toss { 0% { transform: translate3d(0,0,0) scale(1); } 18% { transform: translate3d(0,13px,0) scale(1.08,.82); } 46% { transform: translate3d(0,-95px,0) rotate(150deg) scale(.88); } 72% { transform: translate3d(0,-25px,0) rotate(330deg); } 100% { transform: translate3d(0,0,0) rotate(360deg); } }
+@keyframes cappy-critical { 0% { transform: translate3d(0,0,0) rotate(0) scale(1); } 18% { transform: translate3d(0,14px,0) rotate(-8deg) scale(1.13,.78); } 48% { transform: translate3d(0,-118px,0) rotate(-205deg) scale(1.13); } 76% { transform: translate3d(0,-24px,0) rotate(-405deg) scale(1.04); } 100% { transform: translate3d(0,0,0) rotate(-540deg) scale(1); } }
+@keyframes click-pop-a { 0% { opacity: 0; transform: translate3d(-50%,-20%,0) scale(.7); } 14% { opacity: 1; transform: translate3d(-50%,-55%,0) scale(1.08); } 100% { opacity: 0; transform: translate3d(-50%,-190%,0) scale(.92); } }
+@keyframes click-pop-b { 0% { opacity: 0; transform: translate3d(-50%,-20%,0) scale(.7); } 14% { opacity: 1; transform: translate3d(-50%,-55%,0) scale(1.08); } 100% { opacity: 0; transform: translate3d(-50%,-190%,0) scale(.92); } }
 @keyframes reel-cycle { 0% { transform: translateY(0); } 72% { filter: blur(1.1px); } 100% { transform: translateY(var(--reel-end)); filter: blur(0); } }
 @keyframes reel-glint { 0%,100% { opacity: 1; } 50% { opacity: .72; } }
 @keyframes news-in { 0% { opacity: 0; transform: translateY(12px); } 100% { opacity: 1; transform: translateY(0); } }
@@ -16,8 +17,9 @@
 
 .cappy-button { animation: cappy-float 3.2s ease-in-out infinite; }
 .cappy-button.is-tossing { animation: cappy-toss .62s cubic-bezier(.25,.8,.32,1); }
-.cappy-button.is-critical { animation: cappy-critical .83s cubic-bezier(.18,.8,.25,1); }
-.click-pop.is-active { animation: click-pop .85s ease-out forwards; }
+.cappy-button.is-critical { animation: cappy-critical .72s cubic-bezier(.2,.76,.28,1); }
+.click-pop.is-active.click-pop--a { animation: click-pop-a .85s ease-out forwards; }
+.click-pop.is-active.click-pop--b { animation: click-pop-b .85s ease-out forwards; }
 .news-ticker [data-news-text].is-changing { animation: news-in .4s ease both; }
 .kingdom-backdrop { animation: backdrop-drift 26s ease-in-out infinite; }
 .journey-odyssey { animation: ship-bob 3.5s ease-in-out infinite; }

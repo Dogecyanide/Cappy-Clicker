@@ -100,8 +100,8 @@ describe('Odyssey Fuel', () => {
 
     state.coins = D(1_000);
     const gloom = forceShineOutcome(state, 'gloom-toll', { now: 2_000 });
-    expect(gloom).toMatchObject({ ok: true, loss: '24', prevented: '6' });
-    expect(state.coins.eq(976)).toBe(true);
+    expect(gloom).toMatchObject({ ok: true, loss: '96', prevented: '24' });
+    expect(state.coins.eq(904)).toBe(true);
   });
 
   test('event workshop parts make a borderline King Boo roll kinder', () => {

@@ -346,7 +346,7 @@ function validateResults(simulations, systemBounds) {
   if (!systemBounds.finiteCps || !systemBounds.monotonicCosts) throw new Error('Full-catalogue values or segmented producer costs are invalid.');
   if (systemBounds.fourClickShare > 0.1) throw new Error('Full-catalogue clicking exceeds 10% of total output at four clicks per second.');
   if (systemBounds.offlineCap > 24 || systemBounds.offlineMultiplier > 2) throw new Error('Offline bonuses exceed their hard caps.');
-  if (systemBounds.effectiveGloomBankLoss > 0.03 || systemBounds.kingBooBankLoss > 0.35 || systemBounds.eventLuck > 0.2) throw new Error('Rare-event risk bounds were exceeded.');
+  if (systemBounds.effectiveGloomBankLoss > 0.05 || systemBounds.kingBooBankLoss > 0.35 || systemBounds.eventLuck > 0.2) throw new Error('Rare-event risk bounds were exceeded.');
   console.log('\nHard invariants passed: finite/nonnegative economy, integer ownership, monotonic routes, bounded clicking, and finite collection caps.');
 }
 

@@ -56,14 +56,49 @@ describe('audio samples', () => {
     expect(AudioContext).not.toHaveBeenCalled();
   });
 
-  test('sound profiles carry over to sample pitch and volume', () => {
+  test('sound profiles can change fanfare volume without slowing the original recordings', () => {
     FakeAudio.instances = [];
     const audio = createAudio({ Audio: FakeAudio });
     audio.setProfile('soft');
 
     audio.moon();
 
-    expect(FakeAudio.instances[0]).toMatchObject({ playbackRate: 0.82, volume: 0.58, currentTime: 0 });
+    expect(FakeAudio.instances[0]).toMatchObject({
+      playbackRate: 1,
+      defaultPlaybackRate: 1,
+      preservesPitch: true,
+      volume: 0.58,
+      currentTime: 0,
+    });
+  });
+
+  test('coalesces overlapping autoclick sounds while leaving toss mechanics to the caller', () => {
+    let at = 1_000;
+    const oscillator = { type: '', frequency: { setValueAtTime: vi.fn() }, connect: vi.fn(), start: vi.fn(), stop: vi.fn() };
+    oscillator.connect.mockReturnValue(oscillator);
+    const gain = { gain: { setValueAtTime: vi.fn(), exponentialRampToValueAtTime: vi.fn() }, connect: vi.fn() };
+    gain.connect.mockReturnValue(gain);
+    class AudioContext {
+      constructor() {
+        this.state = 'running';
+        this.currentTime = 0;
+        this.destination = {};
+      }
+
+      createOscillator() { return oscillator; }
+      createGain() { return gain; }
+    }
+    const audio = createAudio({ Audio: false, AudioContext, now: () => at });
+
+    audio.click();
+    at += 10;
+    audio.click();
+    at += 10;
+    audio.click();
+    at += 20;
+    audio.click();
+
+    expect(oscillator.start).toHaveBeenCalledTimes(2);
   });
 
   test('all sounds are harmless when browser audio APIs are unavailable', () => {

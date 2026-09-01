@@ -2,6 +2,8 @@ import { format } from '../core/numbers.js';
 import { getFuelProfile } from '../systems/fuel.js';
 
 export function createFlightDeck(element, store, options = {}) {
+  const now = options.now ?? Date.now;
+  let receiptExpiresAt = 0;
   const fuel = {
     liquid: element.querySelector('[data-fuel-depth-liquid]'),
     gauge: element.querySelector('[data-fuel-depth]'),
@@ -35,10 +37,16 @@ export function createFlightDeck(element, store, options = {}) {
     fuel.next.textContent = profile.nextTier
       ? `${Math.max(0, profile.nextTier.at - percent).toFixed(1)}% to ${profile.nextTier.name}`
       : 'Final fuel grade reached';
+    if (receiptExpiresAt && now() >= receiptExpiresAt) {
+      receiptExpiresAt = 0;
+      receipt.root.hidden = true;
+    }
   }
 
   function showShineReceipt(result) {
     const detail = describeShineReceipt(result);
+    receiptExpiresAt = getShineReceiptDeadline(result, now());
+    receipt.root.hidden = false;
     receipt.root.dataset.tone = detail.tone;
     receipt.root.classList.remove('is-new');
     void receipt.root.offsetWidth;
@@ -50,20 +58,30 @@ export function createFlightDeck(element, store, options = {}) {
     receipt.description.textContent = detail.description;
   }
 
+  receipt.root.hidden = true;
   update(store.state);
   return { update, showShineReceipt };
 }
 
 export function describeShineReceipt(result) {
   const corrupted = result.kind === 'corrupted';
+  const temptation = corrupted && result.beneficial;
   return {
-    tone: corrupted ? 'gloom' : 'shine',
-    icon: corrupted ? '◉' : '☀',
-    kicker: corrupted ? 'Gloom Shine receipt' : 'Rare Shine receipt',
+    tone: temptation ? 'gloom-prize' : corrupted ? 'gloom' : 'shine',
+    icon: temptation ? '✦' : corrupted ? '◉' : '☀',
+    kicker: temptation ? 'Gloom Shine miracle' : corrupted ? 'Gloom Shine receipt' : 'Rare Shine receipt',
     title: result.outcome.title,
     reward: describeOutcomeValue(result),
     description: result.outcome.description,
   };
+}
+
+export function getShineReceiptDeadline(result, now = Date.now()) {
+  const appliedAt = Number(result.claimedAt ?? now);
+  const suppliedDeadline = Number(result.receiptExpiresAt ?? 0);
+  if (Number.isFinite(suppliedDeadline) && suppliedDeadline > appliedAt) return suppliedDeadline;
+  const duration = Number(result.outcome?.effect?.duration ?? 0);
+  return duration > 0 ? appliedAt + duration * 1_000 : appliedAt + 5_000;
 }
 
 function describeOutcomeValue(result) {

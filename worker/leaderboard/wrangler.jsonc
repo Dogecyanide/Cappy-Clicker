@@ -23,7 +23,7 @@
     {
       "binding": "DB",
       "database_name": "cappy-clicker-leaderboard",
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "1d0cd0d7-7539-4957-9d20-ef267700c0ff",
       "migrations_dir": "migrations"
     }
   ]

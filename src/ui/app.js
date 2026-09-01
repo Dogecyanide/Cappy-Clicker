@@ -112,13 +112,6 @@ export function createGame(root, dependencies = {}) {
     onClaim: (result) => {
       reactiveNews(store.state, 'shine', { name: result.outcome.title });
       flightDeck.showShineReceipt(result);
-      const coinLine = result.amount !== '0' ? ` You caught ${format(result.amount)} coins.` : result.loss !== '0' ? ` It stole ${format(result.loss)} coins.` : '';
-      notifications.show(`${result.outcome.description}${coinLine}`, {
-        title: result.kind === 'corrupted' ? `Gloom: ${result.outcome.title}` : result.outcome.title,
-        icon: result.kind === 'corrupted' ? '◉' : '☀',
-        tone: result.kind === 'corrupted' ? 'danger' : 'success',
-        duration: 7_000,
-      });
       unlockNow(); rightRail.renderAll(true); persist('shine');
     },
   });
@@ -464,7 +457,7 @@ function appTemplate(base) {
           <div class="flight-deck__numbers"><strong data-fuel-percent>0.0%</strong><span data-fuel-grade>Starter Fumes</span><small data-fuel-units>0 / 0 units</small><small data-fuel-next>The gauge is waking up</small></div>
         </div>
         <article class="shine-receipt" data-shine-receipt data-tone="idle" aria-live="polite">
-          <span class="shine-receipt__icon" data-shine-receipt-icon>?</span><div><span class="eyebrow" data-shine-receipt-kicker>Rare catch readout</span><h3 data-shine-receipt-title>No Shine caught yet</h3><strong data-shine-receipt-reward>Normal Shines reward · Gloom Shines carry risk</strong><p data-shine-receipt-description>Catch one and its exact payout, penalty, or timed effect will stay here.</p></div>
+          <span class="shine-receipt__icon" data-shine-receipt-icon>?</span><div><span class="eyebrow" data-shine-receipt-kicker>Rare catch readout</span><h3 data-shine-receipt-title>No Shine caught yet</h3><strong data-shine-receipt-reward>Normal Shines reward · Gloom Shines carry risk</strong><p data-shine-receipt-description>Catch one and its exact payout, penalty, or timed effect will appear here briefly.</p></div>
         </article>
       </section>
       </div>

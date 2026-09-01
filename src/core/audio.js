@@ -17,7 +17,9 @@ export function createAudio(options = {}) {
     ?? globalThis.AudioContext
     ?? globalThis.webkitAudioContext;
   const schedule = options.setTimeout ?? globalThis.setTimeout?.bind(globalThis) ?? ((callback) => callback());
+  const now = options.now ?? globalThis.performance?.now?.bind(globalThis.performance) ?? Date.now;
   const moonSamples = new Map();
+  let lastClickToneAt = -Infinity;
   const profiles = {
     classic: { pitch: 1, volume: 1, type: null },
     soft: { pitch: 0.82, volume: 0.58, type: 'sine' },
@@ -48,7 +50,11 @@ export function createAudio(options = {}) {
     try {
       media.pause?.();
       media.currentTime = 0;
-      media.playbackRate = Math.min(2, Math.max(0.5, selected.pitch));
+      // These are complete musical fanfares rather than synthesized effects. Retiming
+      // them with a cosmetic profile makes the original recordings sound broken.
+      media.defaultPlaybackRate = 1;
+      media.playbackRate = 1;
+      media.preservesPitch = true;
       media.volume = Math.min(1, Math.max(0, selected.volume));
       const playback = media.play?.();
       playback?.catch?.(() => {});
@@ -79,6 +85,12 @@ export function createAudio(options = {}) {
     setProfile(nextProfile) { profile = profiles[nextProfile] ? nextProfile : 'classic'; },
     click(critical = false) {
       if (critical) return;
+      const at = now();
+      // Autoclickers can otherwise allocate hundreds of WebAudio nodes per second.
+      // The game still counts every toss; only indistinguishable overlapping ticks
+      // are coalesced.
+      if (at - lastClickToneAt < 32) return;
+      lastClickToneAt = at;
       tone(440, 0.055, 'sine', 0.025);
     },
     purchase() { tone(520, 0.06, 'triangle', 0.03); schedule(() => tone(780, 0.09, 'triangle', 0.03), 55); },

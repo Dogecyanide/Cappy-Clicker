@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import { createInitialState } from '../src/core/state.js';
 import { PRODUCERS } from '../src/data/buildings.js';
+import { ACHIEVEMENT_BY_ID } from '../src/data/achievements.js';
 import { COSMETICS } from '../src/data/cosmetics.js';
 import { createKingdomBackground, getJourneyScene, kingdomImageUrl, resolveKingdomScene } from '../src/visuals/background.js';
 
@@ -18,15 +19,43 @@ describe('kingdom backgrounds', () => {
     expect(getJourneyScene(PRODUCERS.slice(0, 21).map(({ id }) => id)).id).toBe('metro');
   });
 
-  test('every paid backdrop selects a distinct local panorama', () => {
+  test('every paid backdrop selects its own correctly labelled local panorama', () => {
     const state = createInitialState();
     const backdrops = COSMETICS.filter(({ category, backdrop }) => category === 'backdrop' && backdrop.mode === 'fixed');
+    const expectedFiles = {
+      'backdrop-delfino': 'backdrop-delfino-plaza.webp',
+      'backdrop-ricco': 'backdrop-ricco-harbor.webp',
+      'backdrop-battlefield': 'backdrop-bobomb-battlefield.webp',
+      'backdrop-gusty': 'backdrop-gusty-garden.webp',
+      'backdrop-comet': 'backdrop-comet-observatory.webp',
+      'backdrop-super-bell': 'backdrop-super-bell-hill.webp',
+      'backdrop-neon': 'metro.webp',
+      'backdrop-coconut': 'backdrop-coconut-mall.webp',
+      'backdrop-rainbow': 'backdrop-rainbow-road.webp',
+      'backdrop-mount-wario': 'backdrop-mount-wario.webp',
+      'backdrop-rogueport': 'backdrop-rogueport.webp',
+      'backdrop-toad-town': 'backdrop-toad-town.webp',
+      'backdrop-gloom': 'backdrop-luigis-mansion.webp',
+      'backdrop-yoshi': 'backdrop-yoshis-island.webp',
+    };
+    expect(backdrops).toHaveLength(14);
+    expect(Object.fromEntries(backdrops.map(({ id, backdrop }) => [id, backdrop.file]))).toEqual(expectedFiles);
     const scenes = backdrops.map((cosmetic) => {
       state.cosmetics.equipped.backdrop = cosmetic.id;
       return resolveKingdomScene(state);
     });
     expect(new Set(scenes.map(({ file }) => file)).size).toBe(backdrops.length);
     expect(scenes.every(({ source, label }) => source === 'cosmetic' && label.length > 10)).toBe(true);
+  });
+
+  test('the expanded catalogue uses target-matching completion badges', () => {
+    expect(COSMETICS).toHaveLength(29);
+    expect(COSMETICS.filter(({ category }) => category === 'backdrop')).toHaveLength(15);
+    expect(ACHIEVEMENT_BY_ID['cosmetics-owned-29'].condition.target).toBe(29);
+    expect(ACHIEVEMENT_BY_ID['cosmetics-backdrop-15'].condition.target).toBe(15);
+    expect(ACHIEVEMENT_BY_ID['cosmetics-owned-21']).toBeUndefined();
+    expect(ACHIEVEMENT_BY_ID['cosmetics-backdrop-7']).toBeUndefined();
+    expect(PRODUCERS.find(({ id }) => id === 'delfino-plaza').name).toBe('Delfino Fruit Market');
   });
 
   test('asset URLs retain Vite and GitHub Pages base paths', () => {

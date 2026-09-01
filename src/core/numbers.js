@@ -38,30 +38,36 @@ export function shortScaleName(group) {
 
 export function format(value, precision = 3) {
   const number = D(value);
-  if (!isFiniteDecimal(number)) return '0';
-  if (number.eq(0)) return '0';
+  const places = Math.max(0, Math.min(12, Math.floor(Number(precision) || 0)));
+  if (!isFiniteDecimal(number)) return fixedZero(places);
+  if (number.eq(0)) return fixedZero(places);
   const sign = number.lt(0) ? '-' : '';
   const absolute = number.abs();
-  if (absolute.lt(0.01)) return `${sign}${absolute.toExponential(Math.max(1, precision - 1))}`;
+  if (absolute.lt(Decimal.pow(10, -places))) return `${sign}${absolute.toExponential(places).replace('+', '')}`;
   if (absolute.lt(1_000)) {
-    const places = absolute.lt(10) ? 2 : absolute.lt(100) ? 1 : 0;
-    return `${sign}${Number(absolute.toNumber().toFixed(places)).toLocaleString('en-US')}`;
+    return `${sign}${absolute.toNumber().toLocaleString('en-US', {
+      minimumFractionDigits: places,
+      maximumFractionDigits: places,
+    })}`;
   }
   const exponent = absolute.exponent;
   const group = Math.floor(exponent / 3);
   const scaleName = shortScaleName(group);
   if (scaleName) {
     const scaled = absolute.div(Decimal.pow(1000, group)).toNumber();
-    const places = scaled < 10 ? 2 : scaled < 100 ? 1 : 0;
     return `${sign}${scaled.toFixed(places)} ${scaleName}`;
   }
-  return `${sign}${absolute.toExponential(Math.max(1, precision - 1)).replace('+', '')}`;
+  return `${sign}${absolute.toExponential(places).replace('+', '')}`;
 }
 
 export function formatInteger(value) {
   const number = D(value).floor();
   if (number.lt(1e6)) return number.toNumber().toLocaleString('en-US');
-  return format(number, 4);
+  return format(number);
+}
+
+function fixedZero(places) {
+  return places > 0 ? `0.${'0'.repeat(places)}` : '0';
 }
 
 export function safeNumber(value, fallback = 0) {
